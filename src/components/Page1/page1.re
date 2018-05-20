@@ -1,3 +1,5 @@
+[%bs.raw {|require('./page1.css')|}];
+
 let component = ReasonReact.statelessComponent("Page1");
 
 let make = _children => {

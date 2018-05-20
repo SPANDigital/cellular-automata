@@ -5,7 +5,8 @@ external cssTransition : ReasonReact.reactClass = "CSSTransition";
 external transitionGroup : ReasonReact.reactClass = "TransitionGroup";
 
 module CSSTransition = {
-  let make = (~show: bool, ~timeout: int, ~classNames: string, children) =>
+  let make =
+      (~show: option(bool)=?, ~timeout: int, ~classNames: string, children) =>
     ReasonReact.wrapJsForReason(
       ~reactClass=cssTransition,
       ~props={"in": show, "timeout": timeout, "classNames": classNames},

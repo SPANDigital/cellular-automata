@@ -1,0 +1,17 @@
+.Page1 {
+  position: absolute;
+  top: 0;
+  transition: all 0.5s ease;
+  width: 100%;
+  &.routeTransition-enter,
+  &.routeTransition-exit-active,
+  &.routeTransition-exit {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  &.routeTransition-enter-active,
+  &.routeTransition-enter-done {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

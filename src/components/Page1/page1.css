@@ -1,0 +1,11 @@
+.Page1 {
+  position: absolute;
+  top: 0;
+  transition: all 0.5s ease;
+  width: 100%; }
+  .Page1.routeTransition-enter, .Page1.routeTransition-exit-active, .Page1.routeTransition-exit {
+    transform: translateX(400px);
+    opacity: 0; }
+  .Page1.routeTransition-enter-active, .Page1.routeTransition-enter-done {
+    transform: translateX(0);
+    opacity: 1; }

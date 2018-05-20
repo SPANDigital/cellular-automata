@@ -106,7 +106,7 @@ let make = (~currentRoute, _children) => {
         <Router.NavLink route=Home className="navButton">
           (ReasonReact.string("What is Cellular Automata?"))
         </Router.NavLink>
-        <Router.NavLink route=Page1 className="navButton">
+        <Router.NavLink route=Simulation className="navButton">
           (ReasonReact.string("Simulation"))
         </Router.NavLink>
       </nav>

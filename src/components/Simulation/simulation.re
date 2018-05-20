@@ -1,4 +1,4 @@
-[%bs.raw {|require('./page1.css')|}];
+[%bs.raw {|require('./simulation.css')|}];
 
 type cells = list(int);
 
@@ -29,7 +29,7 @@ type action =
   | Pause
   | UpdateCells(int);
 
-let component = ReasonReact.reducerComponent("Page1");
+let component = ReasonReact.reducerComponent("Simulation");
 
 let stringifyCombination = (l: int, m: int, r: int) => {
   let lstring = string_of_int(l);

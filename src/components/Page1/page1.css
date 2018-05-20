@@ -34,7 +34,9 @@
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34); }
   .cellContainer .cell {
     flex: 1;
-    padding: 10px; }
+    padding: 10px;
+    transition: background 0.2s ease;
+    background: #fff; }
     .cellContainer .cell.alive {
       background: #000;
       color: #fff; }

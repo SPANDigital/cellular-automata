@@ -7,6 +7,10 @@ type simStates =
   | Paused
   | Stopped;
 
+type simTypes =
+  | Simple
+  | Stacking;
+
 type simpleRuleSet = list(int);
 
 type state = {
@@ -14,6 +18,7 @@ type state = {
   storedCells: ref(option(cells)),
   generation: int,
   status: simStates,
+  simType: simTypes,
   timerId: ref(option(Js.Global.intervalId)),
 };
 
@@ -56,6 +61,7 @@ let make = _children => {
     storedCells: ref(None),
     generation: 1,
     status: Stopped,
+    simType: Simple,
     timerId: ref(None),
   },
   reducer: (action, state: state) =>

@@ -2,6 +2,8 @@
 
 type cells = list(int);
 
+type simData = {simple: cells};
+
 type simStates =
   | Playing
   | Paused

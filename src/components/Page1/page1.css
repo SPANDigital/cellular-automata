@@ -1,11 +1,37 @@
 .Page1 {
   position: absolute;
   top: 0;
+  display: flex;
+  justify-content: center;
+  transform: translateZ(0);
   transition: all 0.5s ease;
-  width: 100%; }
+  width: 100%;
+  padding-top: 100px; }
   .Page1.routeTransition-enter, .Page1.routeTransition-exit-active, .Page1.routeTransition-exit {
     transform: translateX(400px);
     opacity: 0; }
   .Page1.routeTransition-enter-active, .Page1.routeTransition-enter-done {
     transform: translateX(0);
     opacity: 1; }
+
+.container.simple {
+  width: 50vw; }
+
+.controls {
+  text-align: left;
+  padding-bottom: 5px; }
+
+.cellContainer {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+  border: 2px solid #222;
+  box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34); }
+  .cellContainer .cell {
+    flex: 1;
+    padding: 10px; }
+    .cellContainer .cell.alive {
+      background: #000;
+      color: #fff; }

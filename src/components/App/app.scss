@@ -60,6 +60,8 @@ nav {
 main {
   position: relative;
   width: 100%;
+  height: calc(100vh - 228px);
+  overflow: hidden;
 }
 
 .navButton {
@@ -70,6 +72,9 @@ main {
   text-decoration: none;
   color: #db4d3f;
   margin-right: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  outline: 0;
   &.active {
     color: #db4d3f;
     background: #222;

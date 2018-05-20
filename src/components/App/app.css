@@ -44,7 +44,9 @@ nav {
 
 main {
   position: relative;
-  width: 100%; }
+  width: 100%;
+  height: calc(100vh - 228px);
+  overflow: hidden; }
 
 .navButton {
   padding: 5px;
@@ -53,7 +55,10 @@ main {
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
   text-decoration: none;
   color: #db4d3f;
-  margin-right: 10px; }
+  margin-right: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  outline: 0; }
   .navButton.active {
     color: #db4d3f;
     background: #222;

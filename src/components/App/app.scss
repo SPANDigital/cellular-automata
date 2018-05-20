@@ -2,9 +2,44 @@
   text-align: center;
 }
 
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
+.logo-container {
+  position: relative;
   height: 80px;
+  .App-logo {
+    position: absolute;
+    top: 13px;
+    animation: App-logo-spin infinite 20s linear;
+    width: 90px;
+  }
+  svg {
+    height: 90px;
+    width: 90px;
+    position: absolute;
+    #poly-1 {
+      animation: poly infinite 20s linear 0s;
+    }
+    #poly-2 {
+      animation: poly infinite 20s linear 2500ms;
+    }
+    #poly-3 {
+      animation: poly infinite 20s linear 5000ms;
+    }
+    #poly-4 {
+      animation: poly infinite 20s linear 7500ms;
+    }
+    #poly-5 {
+      animation: poly infinite 20s linear 10000ms;
+    }
+    #poly-6 {
+      animation: poly infinite 20s linear 12500ms;
+    }
+    #poly-7 {
+      animation: poly infinite 20s linear 15000ms;
+    }
+    #poly-8 {
+      animation: poly infinite 20s linear 17500ms;
+    }
+  }
 }
 
 .App-header {
@@ -48,5 +83,17 @@ main {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes poly {
+  0% {
+    fill: #222;
+  }
+  50% {
+    fill: #db4d3f;
+  }
+  100% {
+    fill: #222;
   }
 }

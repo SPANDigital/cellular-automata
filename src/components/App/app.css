@@ -1,9 +1,34 @@
 .App {
   text-align: center; }
 
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
+.logo-container {
+  position: relative;
   height: 80px; }
+  .logo-container .App-logo {
+    position: absolute;
+    top: 13px;
+    animation: App-logo-spin infinite 20s linear;
+    width: 90px; }
+  .logo-container svg {
+    height: 90px;
+    width: 90px;
+    position: absolute; }
+    .logo-container svg #poly-1 {
+      animation: poly infinite 20s linear 0s; }
+    .logo-container svg #poly-2 {
+      animation: poly infinite 20s linear 2500ms; }
+    .logo-container svg #poly-3 {
+      animation: poly infinite 20s linear 5000ms; }
+    .logo-container svg #poly-4 {
+      animation: poly infinite 20s linear 7500ms; }
+    .logo-container svg #poly-5 {
+      animation: poly infinite 20s linear 10000ms; }
+    .logo-container svg #poly-6 {
+      animation: poly infinite 20s linear 12500ms; }
+    .logo-container svg #poly-7 {
+      animation: poly infinite 20s linear 15000ms; }
+    .logo-container svg #poly-8 {
+      animation: poly infinite 20s linear 17500ms; }
 
 .App-header {
   background-color: #222;
@@ -39,3 +64,11 @@ main {
     transform: rotate(0deg); }
   to {
     transform: rotate(360deg); } }
+
+@keyframes poly {
+  0% {
+    fill: #222; }
+  50% {
+    fill: #db4d3f; }
+  100% {
+    fill: #222; } }

@@ -16,6 +16,14 @@ let make = (~currentRoute, _children) => {
           )
         </h2>
       </div>
+      <nav>
+        <Router.NavLink route=Home className="navButton">
+          (ReasonReact.string("What is Cellular Automata?"))
+        </Router.NavLink>
+        <Router.NavLink route=Page1 className="navButton">
+          (ReasonReact.string("Simulation"))
+        </Router.NavLink>
+      </nav>
       <main>
         <ReactTransitionGroup.TransitionGroup>
           (Config.routeToComponent(currentRoute))

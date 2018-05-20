@@ -18,6 +18,25 @@
   font-size: large;
 }
 
+nav {
+  padding: 10px;
+}
+
+.navButton {
+  padding: 5px;
+  background: #fff;
+  border: 1px solid #db4d3f;
+  box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
+  text-decoration: none;
+  color: #db4d3f;
+  margin-right: 10px;
+  &.active {
+    color: #db4d3f;
+    background: #222;
+    border: 1px solid #db4d3f;
+  }
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

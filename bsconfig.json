@@ -1,10 +1,10 @@
 {
   "name": "reason-scripts",
   "sources": {
-    "dir" : "src",
-    "subdirs" : true
+    "dir": "src",
+    "subdirs": true
   },
-  "bs-dependencies": ["reason-react", "@glennsl/bs-jest"],
+  "bs-dependencies": ["reason-react", "@glennsl/bs-jest", "re-classnames"],
   "reason": {
     "react-jsx": 2
   },
@@ -14,5 +14,6 @@
     "module": "es6",
     "in-source": true
   },
-  "suffix": ".bs.js"
+  "suffix": ".bs.js",
+  "namespace": true
 }

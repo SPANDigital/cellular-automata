@@ -7,8 +7,11 @@ type simStates =
   | Paused
   | Stopped;
 
+type simpleRuleSet = list(int);
+
 type state = {
   cells,
+  storedCells: ref(option(cells)),
   generation: int,
   status: simStates,
   timerId: ref(option(Js.Global.intervalId)),
@@ -18,26 +21,70 @@ type action =
   | NextGeneration
   | Start
   | Stop
+  | Pause
   | UpdateCells(int);
 
 let component = ReasonReact.reducerComponent("Page1");
 
+let stringifyCombination = (l: int, m: int, r: int) => {
+  let lstring = string_of_int(l);
+  let mstring = string_of_int(m);
+  let rstring = string_of_int(r);
+  {j|$lstring$mstring$rstring|j};
+};
+
+let rules = (~left: int, ~middle: int, ~right: int) => {
+  let combination = stringifyCombination(left, middle, right);
+  let ruleset = [0, 1, 0, 1, 1, 0, 1, 0];
+  switch (combination) {
+  | "111" => List.nth(ruleset, 0)
+  | "110" => List.nth(ruleset, 1)
+  | "101" => List.nth(ruleset, 2)
+  | "100" => List.nth(ruleset, 3)
+  | "011" => List.nth(ruleset, 4)
+  | "010" => List.nth(ruleset, 5)
+  | "001" => List.nth(ruleset, 6)
+  | "000" => List.nth(ruleset, 7)
+  | _ => 0
+  };
+};
+
 let make = _children => {
   ...component,
   initialState: () => {
-    cells: [0, 0, 0, 1, 0, 0, 0, 0],
+    cells: [1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0],
+    storedCells: ref(None),
     generation: 1,
     status: Stopped,
     timerId: ref(None),
   },
   reducer: (action, state: state) =>
     switch (action) {
-    | UpdateCells(index) =>
-      Js.log(string_of_int(index));
-      ReasonReact.NoUpdate;
+    | UpdateCells(_gen) =>
+      let currentCells = state.cells;
+      let newCells =
+        List.mapi(
+          (index, cell) =>
+            if (index === 0 || index === List.length(currentCells) - 1) {
+              cell;
+            } else {
+              let left = List.nth(currentCells, index - 1);
+              let middle = cell;
+              let right = List.nth(currentCells, index + 1);
+              rules(~left, ~middle, ~right);
+            },
+          currentCells,
+        );
+      ReasonReact.Update({...state, cells: newCells});
     | NextGeneration =>
-      ReasonReact.Update({...state, generation: state.generation + 1})
+      ReasonReact.UpdateWithSideEffects(
+        {...state, generation: state.generation + 1},
+        (self => self.send(UpdateCells(state.generation))),
+      )
     | Start =>
+      if (state.status === Stopped) {
+        state.storedCells := Some(state.cells);
+      };
       ReasonReact.UpdateWithSideEffects(
         {...state, status: Playing},
         (
@@ -56,10 +103,15 @@ let make = _children => {
             );
           }
         ),
-      )
+      );
     | Stop =>
+      let storedCells =
+        switch (state.storedCells^) {
+        | Some(cells) => cells
+        | None => state.cells
+        };
       ReasonReact.UpdateWithSideEffects(
-        {...state, generation: 1, status: Stopped},
+        {...state, generation: 1, status: Stopped, cells: storedCells},
         (
           _self =>
             switch (state.timerId^) {
@@ -69,7 +121,24 @@ let make = _children => {
             | None => ()
             }
         ),
-      )
+      );
+    | Pause =>
+      if (state.status === Playing) {
+        ReasonReact.UpdateWithSideEffects(
+          {...state, status: Paused},
+          (
+            _self =>
+              switch (state.timerId^) {
+              | Some(id) =>
+                Js.Global.clearInterval(id);
+                state.timerId := None;
+              | None => ()
+              }
+          ),
+        );
+      } else {
+        ReasonReact.NoUpdate;
+      }
     },
   render: self => {
     let cells =
@@ -86,13 +155,25 @@ let make = _children => {
     <div className="Page1">
       <div className="container simple">
         <div className="controls">
-          <button className="navButton" onClick=(_event => self.send(Stop))>
+          <button
+            className=(
+              "navButton " ++ (self.state.status === Stopped ? "active" : "")
+            )
+            onClick=(_event => self.send(Stop))>
             (ReasonReact.string("Reset"))
           </button>
-          <button className="navButton" onClick=(_event => self.send(Start))>
+          <button
+            className=(
+              "navButton " ++ (self.state.status === Playing ? "active" : "")
+            )
+            onClick=(_event => self.send(Start))>
             (ReasonReact.string("Play"))
           </button>
-          <button className="navButton">
+          <button
+            className=(
+              "navButton " ++ (self.state.status === Paused ? "active" : "")
+            )
+            onClick=(_event => self.send(Pause))>
             (ReasonReact.string("Pause"))
           </button>
           <span className="generation">

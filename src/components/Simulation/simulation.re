@@ -37,7 +37,7 @@ type action =
   | Stop
   | Pause
   | SwitchType(simTypes)
-  | UpdateCells(int);
+  | UpdateCells;
 
 let component = ReasonReact.reducerComponent("Simulation");
 
@@ -121,7 +121,7 @@ let make = _children => {
   reducer: (action, state: state) =>
     switch (action) {
     | SwitchType(simType) => ReasonReact.Update({...state, simType})
-    | UpdateCells(_gen) =>
+    | UpdateCells =>
       switch (state.simType) {
       | Simple =>
         let currentCells = state.simData.simple;
@@ -150,7 +150,7 @@ let make = _children => {
     | NextGeneration =>
       ReasonReact.UpdateWithSideEffects(
         {...state, generation: state.generation + 1},
-        (self => self.send(UpdateCells(state.generation))),
+        (self => self.send(UpdateCells)),
       )
     | Start =>
       if (state.status === Stopped) {

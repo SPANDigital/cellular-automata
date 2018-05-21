@@ -43,6 +43,10 @@
   margin-right: auto;
   border: 2px solid #222;
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
+  .cellRow {
+    display: flex;
+    flex: 1;
+  }
   .cell {
     flex: 1;
     padding: 10px;

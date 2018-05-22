@@ -6,7 +6,8 @@
   transform: translateZ(0);
   transition: all 0.5s ease;
   width: 100%;
-  padding-top: 100px;
+  padding-top: 20px;
+  padding-bottom: 50px;
   &.routeTransition-enter,
   &.routeTransition-exit-active,
   &.routeTransition-exit {
@@ -36,25 +37,25 @@
 }
 
 .cellContainer {
-  width: 100%;
-  height: 35px;
-  display: flex;
   margin-left: auto;
   margin-right: auto;
   border: 2px solid #222;
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
+  max-height: 400px;
+  overflow: auto;
   .cellRow {
     display: flex;
-    flex: 1;
-  }
-  .cell {
-    flex: 1;
-    padding: 10px;
-    transition: background 0.2s ease;
-    background: #fff;
-    &.alive {
-      background: #000;
-      color: #fff;
+    width: 100%;
+    height: 35px;
+    .cell {
+      flex: 1;
+      padding: 10px;
+      transition: background 0.2s ease;
+      background: #fff;
+      &.alive {
+        background: #000;
+        color: #fff;
+      }
     }
   }
 }

@@ -25,8 +25,6 @@ let make = (~cells: list(list(int)), _children) => {
           </div>,
         cells,
       );
-    <div className="cellContainer">
-      (ReasonReact.array(Array.of_list(cells)))
-    </div>;
+    ReasonReact.array(Array.of_list(cells));
   },
 };

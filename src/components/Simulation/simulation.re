@@ -55,16 +55,16 @@ let rules = (~left: int, ~middle: int, ~right: int) => {
   List.nth(ruleset, index);
 };
 
-let rec buildList = (count, generator, acc) => {
+let rec buildList = (cellsPerRow, generator, acc) => {
   let list = [generator(List.length(acc)), ...acc];
-  if (List.length(acc) === count) {
+  if (List.length(acc) === cellsPerRow) {
     acc;
   } else {
-    buildList(count, generator, list);
+    buildList(cellsPerRow, generator, list);
   };
 };
 
-let cellGenerator = (simType, ~cellsPerRow: int=10, ()) =>
+let cellGenerator = (simType, ~cellsPerRow: int=21, ()) =>
   switch (simType) {
   | Simple => [1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0]
   | Stacking =>
@@ -72,6 +72,7 @@ let cellGenerator = (simType, ~cellsPerRow: int=10, ()) =>
       cellsPerRow,
       count =>
         if (count === cellsPerRow / 2) {
+          Js.log(cellsPerRow / 2);
           1;
         } else {
           0;
@@ -93,9 +94,19 @@ let stringToSimType = string =>
   | _ => Simple
   };
 
+let calculateNextGen = (cells, index, cell) =>
+  if (index === 0 || index === List.length(cells) - 1) {
+    cell;
+  } else {
+    let left = List.nth(cells, index - 1);
+    let middle = cell;
+    let right = List.nth(cells, index + 1);
+    rules(~left, ~middle, ~right);
+  };
+
 let initialSimple = cellGenerator(Simple, ());
 
-let initialStacking = [cellGenerator(Stacking, ~cellsPerRow=10, ())];
+let initialStacking = [cellGenerator(Stacking, ())];
 
 let clearTimer = state =>
   switch (state.timerId^) {
@@ -126,18 +137,7 @@ let make = _children => {
       | Simple =>
         let currentCells = state.simData.simple;
         let newCells =
-          List.mapi(
-            (index, cell) =>
-              if (index === 0 || index === List.length(currentCells) - 1) {
-                cell;
-              } else {
-                let left = List.nth(currentCells, index - 1);
-                let middle = cell;
-                let right = List.nth(currentCells, index + 1);
-                rules(~left, ~middle, ~right);
-              },
-            currentCells,
-          );
+          List.mapi(calculateNextGen(currentCells), currentCells);
         ReasonReact.Update({
           ...state,
           simData: {
@@ -145,7 +145,21 @@ let make = _children => {
             simple: newCells,
           },
         });
-      | Stacking => ReasonReact.NoUpdate
+      | Stacking =>
+        let currentGeneration = List.hd(state.simData.stacking);
+        Js.log(Array.of_list(currentGeneration));
+        let nextGeneration =
+          List.mapi(calculateNextGen(currentGeneration), currentGeneration);
+        Js.log(Array.of_list(nextGeneration));
+        let newData = [nextGeneration, ...state.simData.stacking];
+        Js.log(Array.of_list(newData));
+        ReasonReact.Update({
+          ...state,
+          simData: {
+            ...state.simData,
+            stacking: newData,
+          },
+        });
       }
     | NextGeneration =>
       ReasonReact.UpdateWithSideEffects(
@@ -235,12 +249,15 @@ let make = _children => {
             <option> (ReasonReact.string("Wolfram Elementary")) </option>
           </select>
         </div>
-        (
-          switch (self.state.simType) {
-          | Simple => <Simple cells=self.state.simData.simple />
-          | Stacking => <Stacking cells=self.state.simData.stacking />
-          }
-        )
+        <div className="cellContainer">
+          (
+            switch (self.state.simType) {
+            | Simple => <Simple cells=self.state.simData.simple />
+            | Stacking =>
+              <Stacking cells=(List.rev(self.state.simData.stacking)) />
+            }
+          )
+        </div>
       </div>
     </div>;
   },

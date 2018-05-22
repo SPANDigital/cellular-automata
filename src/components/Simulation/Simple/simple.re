@@ -13,7 +13,7 @@ let make = (~cells: list(int), _children) => {
           </div>,
         cells,
       );
-    <div className="cellContainer">
+    <div className="cellRow">
       (ReasonReact.array(Array.of_list(cells)))
     </div>;
   },

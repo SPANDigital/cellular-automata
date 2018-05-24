@@ -46,15 +46,20 @@
   .cellRow {
     display: flex;
     width: 100%;
-    height: 35px;
     .cell {
       flex: 1;
-      padding: 10px;
       transition: background 0.2s ease;
       background: #fff;
       &.alive {
         background: #000;
         color: #fff;
+      }
+      &.simple {
+        line-height: 30px;
+        height: 30px;
+      }
+      &.stacking {
+        height: 10px;
       }
     }
   }

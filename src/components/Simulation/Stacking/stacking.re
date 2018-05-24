@@ -14,9 +14,10 @@ let make = (~cells: list(list(int)), _children) => {
                     (index, cell) =>
                       <div
                         key=(string_of_int(index) ++ "cell")
-                        className=("cell " ++ (cell === 1 ? "alive" : ""))>
-                        (ReasonReact.string(string_of_int(cell)))
-                      </div>,
+                        className=(
+                          "cell stacking " ++ (cell === 1 ? "alive" : "")
+                        )
+                      />,
                     cellRow,
                   ),
                 ),

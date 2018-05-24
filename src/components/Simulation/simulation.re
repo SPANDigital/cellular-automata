@@ -4,9 +4,21 @@
 
 type cells = list(int);
 
+type stackingConfig = {
+  genMax: int,
+  cells: list(cells),
+  cellHeight: int,
+};
+
+type simpleConfig = {
+  genMax: int,
+  cells,
+  cellHeight: int,
+};
+
 type simData = {
-  simple: cells,
-  stacking: list(cells),
+  simple: simpleConfig,
+  stacking: stackingConfig,
 };
 
 type simStates =
@@ -106,7 +118,7 @@ let calculateNextGen = (cells, index, cell) =>
 
 let initialSimple = cellGenerator(Simple, ());
 
-let initialStacking = [cellGenerator(Stacking, ())];
+let initialStacking = [cellGenerator(Stacking, ~cellsPerRow=61, ())];
 
 let clearTimer = state =>
   switch (state.timerId^) {
@@ -116,12 +128,28 @@ let clearTimer = state =>
   | None => ()
   };
 
+let getContainerHeight = state =>
+  switch (state.simType) {
+  | Simple => "auto"
+  | Stacking =>
+    let data = state.simData.stacking;
+    string_of_int(data.genMax * data.cellHeight) ++ "px";
+  };
+
 let make = _children => {
   ...component,
   initialState: () => {
     simData: {
-      simple: initialSimple,
-      stacking: initialStacking,
+      simple: {
+        genMax: 100,
+        cells: initialSimple,
+        cellHeight: 30,
+      },
+      stacking: {
+        genMax: 29,
+        cells: initialStacking,
+        cellHeight: 10,
+      },
     },
     storedData: ref(None),
     generation: 1,
@@ -135,31 +163,47 @@ let make = _children => {
     | UpdateCells =>
       switch (state.simType) {
       | Simple =>
-        let currentCells = state.simData.simple;
-        let newCells =
-          List.mapi(calculateNextGen(currentCells), currentCells);
-        ReasonReact.Update({
-          ...state,
-          simData: {
-            ...state.simData,
-            simple: newCells,
-          },
-        });
+        if (state.generation < state.simData.simple.genMax) {
+          let currentCells = state.simData.simple.cells;
+          let newCells =
+            List.mapi(calculateNextGen(currentCells), currentCells);
+          ReasonReact.Update({
+            ...state,
+            simData: {
+              ...state.simData,
+              simple: {
+                ...state.simData.simple,
+                cells: newCells,
+              },
+            },
+          });
+        } else {
+          clearTimer(state);
+          ReasonReact.NoUpdate;
+        }
       | Stacking =>
-        let currentGeneration = List.hd(state.simData.stacking);
-        Js.log(Array.of_list(currentGeneration));
-        let nextGeneration =
-          List.mapi(calculateNextGen(currentGeneration), currentGeneration);
-        Js.log(Array.of_list(nextGeneration));
-        let newData = [nextGeneration, ...state.simData.stacking];
-        Js.log(Array.of_list(newData));
-        ReasonReact.Update({
-          ...state,
-          simData: {
-            ...state.simData,
-            stacking: newData,
-          },
-        });
+        if (state.generation < state.simData.stacking.genMax) {
+          let currentGeneration = List.hd(state.simData.stacking.cells);
+          let nextGeneration =
+            List.mapi(
+              calculateNextGen(currentGeneration),
+              currentGeneration,
+            );
+          let newData = [nextGeneration, ...state.simData.stacking.cells];
+          ReasonReact.Update({
+            ...state,
+            simData: {
+              ...state.simData,
+              stacking: {
+                ...state.simData.stacking,
+                cells: newData,
+              },
+            },
+          });
+        } else {
+          clearTimer(state);
+          ReasonReact.NoUpdate;
+        }
       }
     | NextGeneration =>
       ReasonReact.UpdateWithSideEffects(
@@ -249,12 +293,16 @@ let make = _children => {
             <option> (ReasonReact.string("Wolfram Elementary")) </option>
           </select>
         </div>
-        <div className="cellContainer">
+        <div
+          className="cellContainer"
+          style=(
+            ReactDOMRe.Style.make(~height=getContainerHeight(self.state), ())
+          )>
           (
             switch (self.state.simType) {
-            | Simple => <Simple cells=self.state.simData.simple />
+            | Simple => <Simple cells=self.state.simData.simple.cells />
             | Stacking =>
-              <Stacking cells=(List.rev(self.state.simData.stacking)) />
+              <Stacking cells=(List.rev(self.state.simData.stacking.cells)) />
             }
           )
         </div>

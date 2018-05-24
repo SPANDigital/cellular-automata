@@ -7,13 +7,15 @@ type cells = list(int);
 type stackingConfig = {
   genMax: int,
   cells: list(cells),
-  cellHeight: int,
+  cellWidth: int,
+  cellsPerRow: int
 };
 
 type simpleConfig = {
   genMax: int,
   cells,
-  cellHeight: int,
+  cellWidth: int,
+  cellsPerRow: int,
 };
 
 type simData = {
@@ -41,6 +43,7 @@ type state = {
   status: simStates,
   simType: simTypes,
   timerId,
+  containerWidth: int
 };
 
 type action =
@@ -116,39 +119,44 @@ let calculateNextGen = (cells, index, cell) =>
     rules(~left, ~middle, ~right);
   };
 
-let initialSimple = cellGenerator(Simple, ());
-
-let initialStacking = [cellGenerator(Stacking, ~cellsPerRow=61, ())];
-
-let clearTimer = state =>
-  switch (state.timerId^) {
+let clearTimer = ({timerId, _}) =>
+  switch (timerId^) {
   | Some(id) =>
     Js.Global.clearInterval(id);
-    state.timerId := None;
+    timerId := None;
   | None => ()
   };
 
-let getContainerHeight = state =>
-  switch (state.simType) {
+let getContainerHeight = ({simType, simData: data, _}) =>
+  switch (simType) {
   | Simple => "auto"
   | Stacking =>
-    let data = state.simData.stacking;
-    string_of_int(data.genMax * data.cellHeight) ++ "px";
+    let {stacking: {genMax, cellWidth, _}, _} = data;
+    string_of_int(genMax * cellWidth) ++ "px";
   };
 
+let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) => cw / c;
+
 let make = _children => {
+  let stackingCellsPerRow = 61;
+  let containerWidth = 800;
+  let initialSimple = cellGenerator(Simple, ());
+  let initialStacking = [cellGenerator(Stacking, ~cellsPerRow=stackingCellsPerRow, ())];
+  {
   ...component,
   initialState: () => {
     simData: {
       simple: {
         genMax: 100,
+        cellsPerRow: 20,
         cells: initialSimple,
-        cellHeight: 30,
+        cellWidth: getCellWidth(~cellsPerRow=20, ~containerWidth),
       },
       stacking: {
         genMax: 29,
+        cellsPerRow: stackingCellsPerRow,
         cells: initialStacking,
-        cellHeight: 10,
+        cellWidth: getCellWidth(~cellsPerRow=stackingCellsPerRow, ~containerWidth)
       },
     },
     storedData: ref(None),
@@ -156,6 +164,7 @@ let make = _children => {
     status: Stopped,
     simType: Simple,
     timerId: ref(None),
+    containerWidth
   },
   reducer: (action, state: state) =>
     switch (action) {
@@ -247,9 +256,14 @@ let make = _children => {
       }
     },
   render: self => {
-    let {generation} = self.state;
+    let {generation, _} = self.state;
     <div className="Page1">
-      <div className="container simple">
+      <div className="container" 
+           style=(
+             ReactDOMRe.Style.make(
+               ~width=(string_of_int(self.state.containerWidth) ++ "px"), 
+               ())
+           )>
         <div className="controls">
           <button
             className=(
@@ -300,13 +314,14 @@ let make = _children => {
           )>
           (
             switch (self.state.simType) {
-            | Simple => <Simple cells=self.state.simData.simple.cells />
+            | Simple => <Simple cellWidth=(self.state.simData.simple.cellWidth) cells=self.state.simData.simple.cells />
             | Stacking =>
-              <Stacking cells=(List.rev(self.state.simData.stacking.cells)) />
+              <Stacking cellWidth=(self.state.simData.stacking.cellWidth) cells=(List.rev(self.state.simData.stacking.cells)) />
             }
           )
         </div>
       </div>
     </div>;
   },
+}
 };

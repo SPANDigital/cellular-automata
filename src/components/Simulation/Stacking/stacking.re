@@ -1,8 +1,10 @@
 let component = ReasonReact.statelessComponent("Stacking");
 
-let make = (~cells: list(list(int)), _children) => {
+let make = (~cellWidth: int, ~cells: list(list(int)), _children) => {
   ...component,
   render: _self => {
+    let width = string_of_int(cellWidth) ++ "px";
+    let height = string_of_int(cellWidth) ++ "px";
     let cells =
       List.mapi(
         (rowIndex, cellRow) =>
@@ -14,6 +16,7 @@ let make = (~cells: list(list(int)), _children) => {
                     (index, cell) =>
                       <div
                         key=(string_of_int(index) ++ "cell")
+                        style=(ReactDOMRe.Style.make(~height, ~width, ()))
                         className=(
                           "cell stacking " ++ (cell === 1 ? "alive" : "")
                         )

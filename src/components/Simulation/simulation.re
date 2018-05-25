@@ -211,28 +211,27 @@ let make = _children => {
             ReasonReact.NoUpdate;
           }
         | Stacking =>
-          if (state.generation < state.simData.stacking.genMax) {
-            let currentGeneration = List.hd(state.simData.stacking.cells);
-            let nextGeneration =
-              List.mapi(
-                calculateNextGen(currentGeneration, ruleset),
-                currentGeneration,
-              );
-            let newData = [nextGeneration, ...state.simData.stacking.cells];
-            ReasonReact.Update({
-              ...state,
-              simData: {
-                ...state.simData,
-                stacking: {
-                  ...state.simData.stacking,
-                  cells: newData,
-                },
+          let currentGeneration = List.hd(state.simData.stacking.cells);
+          let nextGeneration =
+            List.mapi(
+              calculateNextGen(currentGeneration, ruleset),
+              currentGeneration,
+            );
+          let currentData =
+            state.generation > state.simData.stacking.genMax ?
+              state.simData.stacking.cells |> List.rev |> List.tl |> List.rev :
+              state.simData.stacking.cells;
+          let newData = [nextGeneration, ...currentData];
+          ReasonReact.Update({
+            ...state,
+            simData: {
+              ...state.simData,
+              stacking: {
+                ...state.simData.stacking,
+                cells: newData,
               },
-            });
-          } else {
-            clearTimer(state);
-            ReasonReact.NoUpdate;
-          }
+            },
+          });
         };
       | NextGeneration =>
         ReasonReact.UpdateWithSideEffects(

@@ -251,7 +251,7 @@ let make = _children => {
                   Some(
                     Js.Global.setInterval(
                       () => self.send(NextGeneration),
-                      500,
+                      100,
                     ),
                   );
                 self.onUnmount(() => clearTimer(state));

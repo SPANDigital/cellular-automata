@@ -37,7 +37,6 @@
     width: 100%; }
     .cellContainer .cellRow .cell {
       flex: 1;
-      transition: background 0.2s ease;
       background: #fff; }
       .cellContainer .cellRow .cell.alive {
         background: #000;

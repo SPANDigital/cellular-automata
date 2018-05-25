@@ -56,6 +56,7 @@ type action =
   | Stop
   | Pause
   | SwitchType(simTypes)
+  | SwitchRuleset(string)
   | UpdateCells;
 
 let component = ReasonReact.reducerComponent("Simulation");
@@ -71,7 +72,7 @@ let binaryToRuleIndex = (l: int, m: int, r: int) : int => {
 let rules =
     (~left: int, ~middle: int, ~right: int, ~ruleset as rules: ruleset) => {
   let index = binaryToRuleIndex(left, middle, right);
-  List.nth(rules, index);
+  List.nth(List.rev(rules), index);
 };
 
 let rec buildList = (cellsPerRow, generator, acc) => {
@@ -173,11 +174,16 @@ let make = _children => {
       simType: Simple,
       timerId: ref(None),
       containerWidth,
-      rulesets: [("90", [0, 1, 0, 1, 1, 0, 1, 0])],
+      rulesets: [
+        ("90", [0, 1, 0, 1, 1, 0, 1, 0]),
+        ("222", [1, 1, 0, 1, 1, 1, 1, 0]),
+      ],
       activeRuleset: "90",
     },
     reducer: (action, state: state) =>
       switch (action) {
+      | SwitchRuleset(ruleno) =>
+        ReasonReact.Update({...state, activeRuleset: ruleno})
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
         let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
@@ -237,21 +243,25 @@ let make = _children => {
         if (state.status === Stopped) {
           state.storedData := Some(state.simData);
         };
-        ReasonReact.UpdateWithSideEffects(
-          {...state, status: Playing},
-          (
-            self => {
-              state.timerId :=
-                Some(
-                  Js.Global.setInterval(
-                    () => self.send(NextGeneration),
-                    500,
-                  ),
-                );
-              self.onUnmount(() => clearTimer(state));
-            }
-          ),
-        );
+        if (state.status !== Playing) {
+          ReasonReact.UpdateWithSideEffects(
+            {...state, status: Playing},
+            (
+              self => {
+                state.timerId :=
+                  Some(
+                    Js.Global.setInterval(
+                      () => self.send(NextGeneration),
+                      500,
+                    ),
+                  );
+                self.onUnmount(() => clearTimer(state));
+              }
+            ),
+          );
+        } else {
+          ReasonReact.NoUpdate;
+        };
       | Stop =>
         let storedData =
           switch (state.storedData^) {
@@ -312,18 +322,24 @@ let make = _children => {
               value=(simTypeToString(self.state.simType))
               onChange=(
                 event =>
-                  self.send(
-                    SwitchType(
-                      stringToSimType(
-                        ReactDOMRe.domElementToObj(
-                          ReactEventRe.Form.target(event),
-                        )##value,
-                      ),
-                    ),
-                  )
+                  ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                  |> stringToSimType
+                  |> ((simType: simTypes) => self.send(SwitchType(simType)))
               )>
               <option> (ReasonReact.string("Simple")) </option>
               <option> (ReasonReact.string("Wolfram Elementary")) </option>
+            </select>
+            <select
+              value=self.state.activeRuleset
+              onChange=(
+                event =>
+                  ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                  |> (
+                    (rulecode: string) => self.send(SwitchRuleset(rulecode))
+                  )
+              )>
+              <option> (ReasonReact.string("90")) </option>
+              <option> (ReasonReact.string("222")) </option>
             </select>
           </div>
           <div

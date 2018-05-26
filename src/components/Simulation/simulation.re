@@ -46,8 +46,10 @@ type state = {
   simType: simTypes,
   timerId,
   containerWidth: int,
+  containerHeight: int,
   rulesets,
   activeRuleset: string,
+  wrapEdges: bool,
 };
 
 type action =
@@ -57,6 +59,7 @@ type action =
   | Pause
   | SwitchType(simTypes)
   | SwitchRuleset(string)
+  | ToggleWrapEdges
   | UpdateCells;
 
 let component = ReasonReact.reducerComponent("Simulation");
@@ -114,15 +117,21 @@ let stringToSimType = string =>
   | _ => Simple
   };
 
-let calculateNextGen = (cells, ruleset, index, cell) =>
-  if (index === 0 || index === List.length(cells) - 1) {
+let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
+  let atFirstIndex = index === 0;
+  let atLastIndex = index === List.length(cells) - 1;
+  let atFirstOrLastIndex = atFirstIndex || atLastIndex;
+  if (! wrapEdges && atFirstOrLastIndex) {
     cell;
   } else {
-    let left = List.nth(cells, index - 1);
+    let lIndex = atFirstIndex ? 7 : index - 1;
+    let rIndex = atLastIndex ? 0 : index + 1;
+    let left = List.nth(cells, lIndex);
     let middle = cell;
-    let right = List.nth(cells, index + 1);
+    let right = List.nth(cells, rIndex);
     rules(~left, ~middle, ~right, ~ruleset);
   };
+};
 
 let clearTimer = ({timerId, _}) =>
   switch (timerId^) {
@@ -132,12 +141,10 @@ let clearTimer = ({timerId, _}) =>
   | None => ()
   };
 
-let getContainerHeight = ({simType, simData: data, _}) =>
+let getContainerHeight = ({simType, containerHeight, _}) =>
   switch (simType) {
   | Simple => "auto"
-  | Stacking =>
-    let {stacking: {genMax, cellWidth, _}, _} = data;
-    string_of_int(genMax * cellWidth) ++ "px";
+  | Stacking => string_of_int(containerHeight) ++ "px"
   };
 
 let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
@@ -146,6 +153,9 @@ let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
 let make = _children => {
   let stackingCellsPerRow = 61;
   let containerWidth = 800;
+  let containerHeight = 400;
+  let cellWidth =
+    getCellWidth(~cellsPerRow=stackingCellsPerRow, ~containerWidth);
   let initialSimple = cellGenerator(Simple, ());
   let initialStacking = [
     cellGenerator(Stacking, ~cellsPerRow=stackingCellsPerRow, ()),
@@ -161,11 +171,10 @@ let make = _children => {
           cellWidth: getCellWidth(~cellsPerRow=20, ~containerWidth),
         },
         stacking: {
-          genMax: 29,
+          genMax: containerHeight / cellWidth,
           cellsPerRow: stackingCellsPerRow,
           cells: initialStacking,
-          cellWidth:
-            getCellWidth(~cellsPerRow=stackingCellsPerRow, ~containerWidth),
+          cellWidth,
         },
       },
       storedData: ref(None),
@@ -174,26 +183,33 @@ let make = _children => {
       simType: Simple,
       timerId: ref(None),
       containerWidth,
+      containerHeight,
       rulesets: [
         ("90", [0, 1, 0, 1, 1, 0, 1, 0]),
         ("222", [1, 1, 0, 1, 1, 1, 1, 0]),
+        ("190", [1, 0, 1, 1, 1, 1, 1, 0]),
+        ("30", [0, 0, 0, 1, 1, 1, 1, 0]),
       ],
       activeRuleset: "90",
+      wrapEdges: false,
     },
     reducer: (action, state: state) =>
       switch (action) {
+      | ToggleWrapEdges =>
+        ReasonReact.Update({...state, wrapEdges: ! state.wrapEdges})
       | SwitchRuleset(ruleno) =>
         ReasonReact.Update({...state, activeRuleset: ruleno})
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
         let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
+        let {wrapEdges} = state;
         switch (state.simType) {
         | Simple =>
           if (state.generation < state.simData.simple.genMax) {
             let currentCells = state.simData.simple.cells;
             let newCells =
               List.mapi(
-                calculateNextGen(currentCells, ruleset),
+                calculateNextGen(currentCells, ruleset, wrapEdges),
                 currentCells,
               );
             ReasonReact.Update({
@@ -214,7 +230,7 @@ let make = _children => {
           let currentGeneration = List.hd(state.simData.stacking.cells);
           let nextGeneration =
             List.mapi(
-              calculateNextGen(currentGeneration, ruleset),
+              calculateNextGen(currentGeneration, ruleset, wrapEdges),
               currentGeneration,
             );
           let currentData =
@@ -337,9 +353,24 @@ let make = _children => {
                     (rulecode: string) => self.send(SwitchRuleset(rulecode))
                   )
               )>
-              <option> (ReasonReact.string("90")) </option>
-              <option> (ReasonReact.string("222")) </option>
+              (
+                self.state.rulesets
+                |> List.map(rule => {
+                     let (rulecode, _) = rule;
+                     <option key=rulecode>
+                       (ReasonReact.string(rulecode))
+                     </option>;
+                   })
+                |> Array.of_list
+                |> ReasonReact.array
+              )
             </select>
+            <input
+              _type="checkbox"
+              value="wrapedges"
+              checked=self.state.wrapEdges
+              onChange=(_event => self.send(ToggleWrapEdges))
+            />
           </div>
           <div
             className="cellContainer"

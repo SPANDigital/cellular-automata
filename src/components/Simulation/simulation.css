@@ -30,7 +30,6 @@
   margin-right: auto;
   border: 2px solid #222;
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
-  max-height: 400px;
   overflow: auto; }
   .cellContainer .cellRow {
     display: flex;

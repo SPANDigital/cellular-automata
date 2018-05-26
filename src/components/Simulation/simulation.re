@@ -4,24 +4,14 @@
 
 type cells = list(int);
 
-type stackingConfig = {
+type config = {
   genMax: int,
   cells: list(cells),
   cellWidth: int,
   cellsPerRow: int,
 };
 
-type simpleConfig = {
-  genMax: int,
-  cells,
-  cellWidth: int,
-  cellsPerRow: int,
-};
-
-type simData = {
-  simple: simpleConfig,
-  stacking: stackingConfig,
-};
+type simData = list((string, config));
 
 type simStates =
   | Playing
@@ -151,32 +141,38 @@ let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
   cw / c;
 
 let make = _children => {
-  let stackingCellsPerRow = 61;
+  let stackingCellsPerRow = 60;
   let containerWidth = 800;
   let containerHeight = 400;
   let cellWidth =
     getCellWidth(~cellsPerRow=stackingCellsPerRow, ~containerWidth);
-  let initialSimple = cellGenerator(Simple, ());
+  let initialSimple = [cellGenerator(Simple, ())];
   let initialStacking = [
     cellGenerator(Stacking, ~cellsPerRow=stackingCellsPerRow, ()),
   ];
   {
     ...component,
     initialState: () => {
-      simData: {
-        simple: {
-          genMax: 100,
-          cellsPerRow: 20,
-          cells: initialSimple,
-          cellWidth: getCellWidth(~cellsPerRow=20, ~containerWidth),
-        },
-        stacking: {
-          genMax: containerHeight / cellWidth,
-          cellsPerRow: stackingCellsPerRow,
-          cells: initialStacking,
-          cellWidth,
-        },
-      },
+      simData: [
+        (
+          "simple",
+          {
+            genMax: 100,
+            cellsPerRow: 20,
+            cells: initialSimple,
+            cellWidth: getCellWidth(~cellsPerRow=20, ~containerWidth),
+          },
+        ),
+        (
+          "stacking",
+          {
+            genMax: containerHeight / cellWidth + 1,
+            cellsPerRow: stackingCellsPerRow,
+            cells: initialStacking,
+            cellWidth,
+          },
+        ),
+      ],
       storedData: ref(None),
       generation: 1,
       status: Stopped,
@@ -189,6 +185,7 @@ let make = _children => {
         ("222", [1, 1, 0, 1, 1, 1, 1, 0]),
         ("190", [1, 0, 1, 1, 1, 1, 1, 0]),
         ("30", [0, 0, 0, 1, 1, 1, 1, 0]),
+        ("110", [0, 1, 1, 0, 1, 1, 1, 0]),
       ],
       activeRuleset: "90",
       wrapEdges: false,
@@ -203,52 +200,35 @@ let make = _children => {
       | UpdateCells =>
         let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
         let {wrapEdges} = state;
-        switch (state.simType) {
-        | Simple =>
-          if (state.generation < state.simData.simple.genMax) {
-            let currentCells = state.simData.simple.cells;
-            let newCells =
-              List.mapi(
-                calculateNextGen(currentCells, ruleset, wrapEdges),
-                currentCells,
-              );
-            ReasonReact.Update({
-              ...state,
-              simData: {
-                ...state.simData,
-                simple: {
-                  ...state.simData.simple,
-                  cells: newCells,
-                },
-              },
-            });
-          } else {
-            clearTimer(state);
-            ReasonReact.NoUpdate;
-          }
-        | Stacking =>
-          let currentGeneration = List.hd(state.simData.stacking.cells);
-          let nextGeneration =
-            List.mapi(
-              calculateNextGen(currentGeneration, ruleset, wrapEdges),
-              currentGeneration,
-            );
-          let currentData =
-            state.generation > state.simData.stacking.genMax ?
-              state.simData.stacking.cells |> List.rev |> List.tl |> List.rev :
-              state.simData.stacking.cells;
-          let newData = [nextGeneration, ...currentData];
-          ReasonReact.Update({
-            ...state,
-            simData: {
-              ...state.simData,
-              stacking: {
-                ...state.simData.stacking,
-                cells: newData,
-              },
-            },
-          });
-        };
+        let simType =
+          switch (state.simType) {
+          | Simple => "simple"
+          | Stacking => "stacking"
+          };
+        let currentConfig = ListLabels.assoc(simType, state.simData);
+        let currentGeneration = currentConfig.cells |> List.hd;
+        let nextGen =
+          List.mapi(
+            calculateNextGen(currentGeneration, ruleset, wrapEdges),
+            currentGeneration,
+          );
+        let newCells =
+          switch (state.simType) {
+          | Simple => [nextGen]
+          | Stacking =>
+            let currentCells =
+              state.generation > currentConfig.genMax ?
+                currentConfig.cells |> List.rev |> List.tl |> List.rev :
+                currentConfig.cells;
+            [nextGen, ...currentCells];
+          };
+        let newConfig = {...currentConfig, cells: newCells};
+        let newConfigTuple = (simType, newConfig);
+        let currData = ListLabels.remove_assq(simType, state.simData);
+        ReasonReact.Update({
+          ...state,
+          simData: [newConfigTuple, ...currData],
+        });
       | NextGeneration =>
         ReasonReact.UpdateWithSideEffects(
           {...state, generation: state.generation + 1},
@@ -344,33 +324,42 @@ let make = _children => {
               <option> (ReasonReact.string("Simple")) </option>
               <option> (ReasonReact.string("Wolfram Elementary")) </option>
             </select>
-            <select
-              value=self.state.activeRuleset
-              onChange=(
-                event =>
-                  ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                  |> (
-                    (rulecode: string) => self.send(SwitchRuleset(rulecode))
-                  )
-              )>
-              (
-                self.state.rulesets
-                |> List.map(rule => {
-                     let (rulecode, _) = rule;
-                     <option key=rulecode>
-                       (ReasonReact.string(rulecode))
-                     </option>;
-                   })
-                |> Array.of_list
-                |> ReasonReact.array
-              )
-            </select>
-            <input
-              _type="checkbox"
-              value="wrapedges"
-              checked=self.state.wrapEdges
-              onChange=(_event => self.send(ToggleWrapEdges))
-            />
+            (
+              self.state.simType === Stacking ?
+                <div>
+                  <select
+                    value=self.state.activeRuleset
+                    onChange=(
+                      event =>
+                        ReactDOMRe.domElementToObj(
+                          ReactEventRe.Form.target(event),
+                        )##value
+                        |> (
+                          (rulecode: string) =>
+                            self.send(SwitchRuleset(rulecode))
+                        )
+                    )>
+                    (
+                      self.state.rulesets
+                      |> List.map(rule => {
+                           let (rulecode, _) = rule;
+                           <option key=rulecode>
+                             (ReasonReact.string(rulecode))
+                           </option>;
+                         })
+                      |> Array.of_list
+                      |> ReasonReact.array
+                    )
+                  </select>
+                  <input
+                    _type="checkbox"
+                    value="wrapedges"
+                    checked=self.state.wrapEdges
+                    onChange=(_event => self.send(ToggleWrapEdges))
+                  />
+                </div> :
+                ReasonReact.null
+            )
           </div>
           <div
             className="cellContainer"
@@ -384,13 +373,21 @@ let make = _children => {
               switch (self.state.simType) {
               | Simple =>
                 <Simple
-                  cellWidth=self.state.simData.simple.cellWidth
-                  cells=self.state.simData.simple.cells
+                  cellWidth=ListLabels.assoc("simple", self.state.simData).
+                              cellWidth
+                  cells=(
+                    ListLabels.assoc("simple", self.state.simData).cells
+                    |> List.hd
+                  )
                 />
               | Stacking =>
                 <Stacking
-                  cellWidth=self.state.simData.stacking.cellWidth
-                  cells=(List.rev(self.state.simData.stacking.cells))
+                  cellWidth=ListLabels.assoc("stacking", self.state.simData).
+                              cellWidth
+                  cells=(
+                    ListLabels.assoc("stacking", self.state.simData).cells
+                    |> List.rev
+                  )
                 />
               }
             )

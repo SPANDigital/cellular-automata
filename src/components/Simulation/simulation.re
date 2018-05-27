@@ -141,15 +141,12 @@ let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
   cw / c;
 
 let make = _children => {
-  let stackingCellsPerRow = 60;
+  let cellsPerRow = 60;
   let containerWidth = 800;
   let containerHeight = 400;
-  let cellWidth =
-    getCellWidth(~cellsPerRow=stackingCellsPerRow, ~containerWidth);
+  let cellWidth = getCellWidth(~cellsPerRow, ~containerWidth);
   let initialSimple = [cellGenerator(Simple, ())];
-  let initialStacking = [
-    cellGenerator(Stacking, ~cellsPerRow=stackingCellsPerRow, ()),
-  ];
+  let initialStacking = [cellGenerator(Stacking, ~cellsPerRow, ())];
   {
     ...component,
     initialState: () => {
@@ -167,11 +164,20 @@ let make = _children => {
           "stacking",
           {
             genMax: containerHeight / cellWidth + 1,
-            cellsPerRow: stackingCellsPerRow,
+            cellsPerRow,
             cells: initialStacking,
             cellWidth,
           },
         ),
+        /* (
+             "gol",
+             {
+               genMax: containerHeight / cellWidth + 1,
+               cellsPerRow,
+               cells: initialGrid,
+               cellWidth
+             }
+           ) */
       ],
       storedData: ref(None),
       generation: 1,

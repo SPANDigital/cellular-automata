@@ -90,6 +90,13 @@ let stringToSimType = string =>
   | _ => Simple
   };
 
+let simTypeToKey = (simType: simTypes) =>
+  switch (simType) {
+  | Simple => "simple"
+  | Stacking => "stacking"
+  | GOL => "gol"
+  };
+
 let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
   let atFirstIndex = index === 0;
   let atLastIndex = index === Array.length(cells) - 1;
@@ -104,6 +111,37 @@ let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
     let right = cells[rIndex];
     rules(~left, ~middle, ~right, ~ruleset);
   };
+};
+
+let calculateNextCycle = ({genMax, cellsPerRow, cells, _}) => {
+  Array.mapi((rowIndex, row) => {
+    if (rowIndex > 0 && rowIndex < genMax - 1) {
+      Array.mapi((colIndex, cell) => {
+        if (colIndex > 0 && colIndex < cellsPerRow - 1) {
+          let neighbours = ref(0);
+          for (i in -1 to 1) {
+            for (j in -1 to 1) {
+              neighbours := neighbours^ + cells[rowIndex + i][colIndex + j];
+            };
+          };
+          neighbours := neighbours^ - cell;
+          if (cell === 1 && neighbours^ < 2) {
+            0;
+          } else if (cell === 1 && neighbours^ > 3) {
+            0;
+          } else if (cell === 0 && neighbours^ === 3) {
+            1;
+          } else {
+            cell;
+          }
+        } else {
+          cell;
+        }
+      }, row);
+    } else {
+      row;
+    }
+  }, cells);
 };
 
 let clearTimer = ({timerId, _}) =>
@@ -123,7 +161,44 @@ let getContainerHeight = ({simType, containerHeight, _}) =>
 let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
   cw / c;
 
-let buildGrid = (~cols: int, ~rows: int) => Array.make_matrix(rows, cols, 0);
+let golInitState = [
+  ("block", [
+    (1, 1),
+    (1, 2),
+    (2, 1),
+    (2, 2)
+  ]),
+  ("blinker", [
+    (2, 3),
+    (3, 3),
+    (4, 3)
+  ]),
+  ("toad", [
+    (5, 5),
+    (5, 6),
+    (5, 7),
+    (4, 4),
+    (4, 5),
+    (4, 6)
+  ]),    
+  ("glider", [
+    (3, 3),
+    (4, 4),
+    (4, 5),
+    (3, 5),
+    (2, 5)
+  ])
+];
+
+let buildGrid = (~cols: int, ~rows: int) => {
+  let grid = Array.make_matrix(rows, cols, 0);
+  ListLabels.assoc("glider", golInitState) 
+  |> List.iter(coord => {
+    let (y, x) = coord;
+    grid[y][x] = 1;
+  });
+  grid;
+};
 
 let make = _children => {
   let cellsPerRow = 60;
@@ -178,38 +253,51 @@ let make = _children => {
         ReasonReact.Update({...state, activeRuleset: ruleno})
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
-        let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
-        let {wrapEdges, _} = state;
         let simType =
           switch (state.simType) {
           | Simple => "simple"
           | Stacking => "stacking"
+          | GOL => "gol"
           };
         let currentConfig = ListLabels.assoc(simType, state.simData);
-        let lastItemIndex = Array.length(currentConfig.cells) - 1;
-        let currentGeneration = currentConfig.cells[lastItemIndex];
-        let nextGen =
-          Array.mapi(
-            calculateNextGen(currentGeneration, ruleset, wrapEdges),
-            currentGeneration,
-          );
-        let newCells =
-          switch (state.simType) {
-          | Simple => [nextGen]
-          | Stacking =>
-            let currentCells =
-              state.generation > currentConfig.genMax ?
-                currentConfig.cells |> Array.to_list |> List.tl :
-                currentConfig.cells |> Array.to_list;
-            currentCells @ [nextGen];
-          };
-        let newConfig = {...currentConfig, cells: Array.of_list(newCells)};
-        let newConfigTuple = (simType, newConfig);
-        let currData = ListLabels.remove_assq(simType, state.simData);
-        ReasonReact.Update({
-          ...state,
-          simData: [newConfigTuple, ...currData],
-        });
+        switch (state.simType) {
+        | GOL =>
+          let currentGeneration = currentConfig.cells;
+          let nextGen = calculateNextCycle(currentConfig);
+          let newConfig = {...currentConfig, cells: nextGen};
+          let newConfigTuple = (simType, newConfig);
+          let currData = ListLabels.remove_assq(simType, state.simData);
+          ReasonReact.Update({...state, simData: [newConfigTuple, ...currData]});
+        | Simple
+        | Stacking =>
+          let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
+          let {wrapEdges, _} = state;
+          let currentConfig = ListLabels.assoc(simType, state.simData);
+          let lastItemIndex = Array.length(currentConfig.cells) - 1;
+          let currentGeneration = currentConfig.cells[lastItemIndex];
+          let nextGen =
+            Array.mapi(
+              calculateNextGen(currentGeneration, ruleset, wrapEdges),
+              currentGeneration,
+            );
+          let newCells =
+            switch (state.simType) {
+            | Simple => [nextGen]
+            | Stacking =>
+              let currentCells =
+                state.generation > currentConfig.genMax ?
+                  currentConfig.cells |> Array.to_list |> List.tl :
+                  currentConfig.cells |> Array.to_list;
+              currentCells @ [nextGen];
+            };
+          let newConfig = {...currentConfig, cells: Array.of_list(newCells)};
+          let newConfigTuple = (simType, newConfig);
+          let currData = ListLabels.remove_assq(simType, state.simData);
+          ReasonReact.Update({
+            ...state,
+            simData: [newConfigTuple, ...currData],
+          });
+        }
       | NextGeneration =>
         ReasonReact.UpdateWithSideEffects(
           {...state, generation: state.generation + 1},
@@ -304,6 +392,7 @@ let make = _children => {
               )>
               <option> (ReasonReact.string("Simple")) </option>
               <option> (ReasonReact.string("Wolfram Elementary")) </option>
+              <option> (ReasonReact.string("Game of Life")) </option>
             </select>
             (
               self.state.simType === Stacking ?
@@ -358,12 +447,10 @@ let make = _children => {
                               cellWidth
                   cells=ListLabels.assoc("simple", self.state.simData).cells[0]
                 />
-              | Stacking =>
-                <Stacking
-                  cellWidth=ListLabels.assoc("stacking", self.state.simData).
-                              cellWidth
-                  cells=ListLabels.assoc("stacking", self.state.simData).cells
-                />
+              | _ =>
+                let simType = simTypeToKey(self.state.simType);
+                let data = ListLabels.assoc(simType, self.state.simData);
+                <Stacking cellWidth=data.cellWidth cells=data.cells />;
               }
             )
           </div>

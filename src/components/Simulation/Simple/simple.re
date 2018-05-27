@@ -1,12 +1,12 @@
 let component = ReasonReact.statelessComponent("Simple");
 
-let make = (~cellWidth: int, ~cells: list(int), _children) => {
+let make = (~cellWidth: int, ~cells: array(int), _children) => {
   ...component,
   render: _self => {
     let width = string_of_int(cellWidth) ++ "px";
     let height = string_of_int(cellWidth) ++ "px";
     let cells =
-      List.mapi(
+      Array.mapi(
         (index, cell) =>
           <div
             key=(string_of_int(index))
@@ -18,8 +18,6 @@ let make = (~cellWidth: int, ~cells: list(int), _children) => {
           </div>,
         cells,
       );
-    <div className="cellRow">
-      (ReasonReact.array(Array.of_list(cells)))
-    </div>;
+    <div className="cellRow"> (ReasonReact.array(cells)) </div>;
   },
 };

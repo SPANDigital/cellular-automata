@@ -2,11 +2,11 @@
 
 [@bs.val] external parseInt : (string, int) => int = "parseInt";
 
-type cells = list(int);
+type cells = array(int);
 
 type config = {
   genMax: int,
-  cells: list(cells),
+  cells: array(cells),
   cellWidth: int,
   cellsPerRow: int,
 };
@@ -68,29 +68,29 @@ let rules =
   List.nth(List.rev(rules), index);
 };
 
-let rec buildList = (cellsPerRow, generator, acc) => {
-  let list = [generator(List.length(acc)), ...acc];
-  if (List.length(acc) === cellsPerRow) {
+let rec buildCellRow = (cellsPerRow, generator, acc) => {
+  let len = Array.length(acc);
+  if (len === cellsPerRow) {
     acc;
   } else {
-    buildList(cellsPerRow, generator, list);
+    let arr = Array.append(acc, [|generator(len)|]);
+    buildCellRow(cellsPerRow, generator, arr);
   };
 };
 
 let cellGenerator = (simType, ~cellsPerRow: int=21, ()) =>
   switch (simType) {
-  | Simple => [1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0]
+  | Simple => [|1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0|]
   | Stacking =>
-    buildList(
+    buildCellRow(
       cellsPerRow,
       count =>
         if (count === cellsPerRow / 2) {
-          Js.log(cellsPerRow / 2);
           1;
         } else {
           0;
         },
-      [],
+      [||],
     )
   };
 
@@ -109,16 +109,16 @@ let stringToSimType = string =>
 
 let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
   let atFirstIndex = index === 0;
-  let atLastIndex = index === List.length(cells) - 1;
+  let atLastIndex = index === Array.length(cells) - 1;
   let atFirstOrLastIndex = atFirstIndex || atLastIndex;
   if (! wrapEdges && atFirstOrLastIndex) {
     cell;
   } else {
     let lIndex = atFirstIndex ? 7 : index - 1;
     let rIndex = atLastIndex ? 0 : index + 1;
-    let left = List.nth(cells, lIndex);
+    let left = cells[lIndex];
     let middle = cell;
-    let right = List.nth(cells, rIndex);
+    let right = cells[rIndex];
     rules(~left, ~middle, ~right, ~ruleset);
   };
 };
@@ -145,8 +145,8 @@ let make = _children => {
   let containerWidth = 800;
   let containerHeight = 400;
   let cellWidth = getCellWidth(~cellsPerRow, ~containerWidth);
-  let initialSimple = [cellGenerator(Simple, ())];
-  let initialStacking = [cellGenerator(Stacking, ~cellsPerRow, ())];
+  let initialSimple = [|cellGenerator(Simple, ())|];
+  let initialStacking = [|cellGenerator(Stacking, ~cellsPerRow, ())|];
   {
     ...component,
     initialState: () => {
@@ -212,9 +212,12 @@ let make = _children => {
           | Stacking => "stacking"
           };
         let currentConfig = ListLabels.assoc(simType, state.simData);
-        let currentGeneration = currentConfig.cells |> List.hd;
+        let currentGeneration = currentConfig.cells[Array.length(
+                                                      currentConfig.cells,
+                                                    )
+                                                    - 1];
         let nextGen =
-          List.mapi(
+          Array.mapi(
             calculateNextGen(currentGeneration, ruleset, wrapEdges),
             currentGeneration,
           );
@@ -224,11 +227,11 @@ let make = _children => {
           | Stacking =>
             let currentCells =
               state.generation > currentConfig.genMax ?
-                currentConfig.cells |> List.rev |> List.tl |> List.rev :
-                currentConfig.cells;
-            [nextGen, ...currentCells];
+                currentConfig.cells |> Array.to_list |> List.tl :
+                currentConfig.cells |> Array.to_list;
+            currentCells @ [nextGen];
           };
-        let newConfig = {...currentConfig, cells: newCells};
+        let newConfig = {...currentConfig, cells: Array.of_list(newCells)};
         let newConfigTuple = (simType, newConfig);
         let currData = ListLabels.remove_assq(simType, state.simData);
         ReasonReact.Update({
@@ -381,19 +384,13 @@ let make = _children => {
                 <Simple
                   cellWidth=ListLabels.assoc("simple", self.state.simData).
                               cellWidth
-                  cells=(
-                    ListLabels.assoc("simple", self.state.simData).cells
-                    |> List.hd
-                  )
+                  cells=ListLabels.assoc("simple", self.state.simData).cells[0]
                 />
               | Stacking =>
                 <Stacking
                   cellWidth=ListLabels.assoc("stacking", self.state.simData).
                               cellWidth
-                  cells=(
-                    ListLabels.assoc("stacking", self.state.simData).cells
-                    |> List.rev
-                  )
+                  cells=ListLabels.assoc("stacking", self.state.simData).cells
                 />
               }
             )

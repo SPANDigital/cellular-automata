@@ -17,7 +17,7 @@ module WithRouter = {
         switch (action) {
         | ChangeUrl(route) => ReasonReact.Update({currentRoute: route})
         },
-      subscriptions: ({send}) => [
+      subscriptions: ({send, _}) => [
         Sub(
           () =>
             ReasonReact.Router.watchUrl(url =>
@@ -26,7 +26,7 @@ module WithRouter = {
           ReasonReact.Router.unwatchUrl,
         ),
       ],
-      render: ({state}) => children(~currentRoute=state.currentRoute),
+      render: ({state, _}) => children(~currentRoute=state.currentRoute),
     };
 };
 

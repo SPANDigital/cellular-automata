@@ -20,7 +20,8 @@ type simStates =
 
 type simTypes =
   | Simple
-  | Stacking;
+  | Stacking
+  | GOL;
 
 type ruleset = list(int);
 
@@ -68,42 +69,24 @@ let rules =
   List.nth(List.rev(rules), index);
 };
 
-let rec buildCellRow = (cellsPerRow, generator, acc) => {
-  let len = Array.length(acc);
-  if (len === cellsPerRow) {
-    acc;
-  } else {
-    let arr = Array.append(acc, [|generator(len)|]);
-    buildCellRow(cellsPerRow, generator, arr);
-  };
-};
-
 let cellGenerator = (simType, ~cellsPerRow: int=21, ()) =>
   switch (simType) {
   | Simple => [|1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0|]
-  | Stacking =>
-    buildCellRow(
-      cellsPerRow,
-      count =>
-        if (count === cellsPerRow / 2) {
-          1;
-        } else {
-          0;
-        },
-      [||],
-    )
+  | _ => Array.init(cellsPerRow, i => i === cellsPerRow / 2 ? 1 : 0)
   };
 
 let simTypeToString = (simType: simTypes) =>
   switch (simType) {
   | Simple => "Simple"
   | Stacking => "Wolfram Elementary"
+  | GOL => "Game of Life"
   };
 
 let stringToSimType = string =>
   switch (string) {
   | "Simple" => Simple
   | "Wolfram Elementary" => Stacking
+  | "Game of Life" => GOL
   | _ => Simple
   };
 
@@ -134,19 +117,23 @@ let clearTimer = ({timerId, _}) =>
 let getContainerHeight = ({simType, containerHeight, _}) =>
   switch (simType) {
   | Simple => "auto"
-  | Stacking => string_of_int(containerHeight) ++ "px"
+  | _ => string_of_int(containerHeight) ++ "px"
   };
 
 let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
   cw / c;
+
+let buildGrid = (~cols: int, ~rows: int) => Array.make_matrix(rows, cols, 0);
 
 let make = _children => {
   let cellsPerRow = 60;
   let containerWidth = 800;
   let containerHeight = 400;
   let cellWidth = getCellWidth(~cellsPerRow, ~containerWidth);
+  let genMax = containerHeight / cellWidth + 1;
   let initialSimple = [|cellGenerator(Simple, ())|];
   let initialStacking = [|cellGenerator(Stacking, ~cellsPerRow, ())|];
+  let initialGrid = buildGrid(~cols=cellsPerRow, ~rows=genMax);
   {
     ...component,
     initialState: () => {
@@ -162,22 +149,9 @@ let make = _children => {
         ),
         (
           "stacking",
-          {
-            genMax: containerHeight / cellWidth + 1,
-            cellsPerRow,
-            cells: initialStacking,
-            cellWidth,
-          },
+          {genMax, cellsPerRow, cells: initialStacking, cellWidth},
         ),
-        /* (
-             "gol",
-             {
-               genMax: containerHeight / cellWidth + 1,
-               cellsPerRow,
-               cells: initialGrid,
-               cellWidth
-             }
-           ) */
+        ("gol", {genMax, cellsPerRow, cells: initialGrid, cellWidth}),
       ],
       storedData: ref(None),
       generation: 1,
@@ -205,17 +179,15 @@ let make = _children => {
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
         let ruleset = ListLabels.assoc(state.activeRuleset, state.rulesets);
-        let {wrapEdges} = state;
+        let {wrapEdges, _} = state;
         let simType =
           switch (state.simType) {
           | Simple => "simple"
           | Stacking => "stacking"
           };
         let currentConfig = ListLabels.assoc(simType, state.simData);
-        let currentGeneration = currentConfig.cells[Array.length(
-                                                      currentConfig.cells,
-                                                    )
-                                                    - 1];
+        let lastItemIndex = Array.length(currentConfig.cells) - 1;
+        let currentGeneration = currentConfig.cells[lastItemIndex];
         let nextGen =
           Array.mapi(
             calculateNextGen(currentGeneration, ruleset, wrapEdges),

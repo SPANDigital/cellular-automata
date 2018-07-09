@@ -128,31 +128,33 @@ let calculateNeighbours = (cell, cells, r, c) => {
   neighbours^ - cell;
 };
 
+let calculateCell = (cell, neighbours) =>
+  if (cell === 1 && neighbours < 2) {
+    0;
+  } else if (cell === 1 && neighbours > 3) {
+    0;
+  } else if (cell === 0 && neighbours === 3) {
+    1;
+  } else {
+    cell;
+  };
+
 let calculateNextCycle = (genMax, cellsPerRow, cells) =>
   Array.mapi(
     (rowIndex, row) =>
-      if (rowIndex > 0 && rowIndex < genMax - 1) {
+      switch (rowIndex > 0 && rowIndex < genMax - 1) {
+      | true =>
         Array.mapi(
           (colIndex, cell) =>
-            if (colIndex > 0 && colIndex < cellsPerRow - 1) {
-              let neighbours =
-                calculateNeighbours(cell, cells, rowIndex, colIndex);
-              if (cell === 1 && neighbours < 2) {
-                0;
-              } else if (cell === 1 && neighbours > 3) {
-                0;
-              } else if (cell === 0 && neighbours === 3) {
-                1;
-              } else {
-                cell;
-              };
-            } else {
-              cell;
+            switch (colIndex > 0 && colIndex < cellsPerRow - 1) {
+            | true =>
+              calculateNeighbours(cell, cells, rowIndex, colIndex)
+              |> calculateCell(cell)
+            | _ => cell
             },
           row,
-        );
-      } else {
-        row;
+        )
+      | _ => row
       },
     cells,
   );

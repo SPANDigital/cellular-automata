@@ -142,20 +142,16 @@ let calculateCell = (cell, neighbours) =>
 let calculateNextCycle = (genMax, cellsPerRow, cells) =>
   Array.mapi(
     (rowIndex, row) =>
-      switch (rowIndex > 0 && rowIndex < genMax - 1) {
-      | true =>
+      rowIndex > 0 && rowIndex < genMax - 1 ?
         Array.mapi(
           (colIndex, cell) =>
-            switch (colIndex > 0 && colIndex < cellsPerRow - 1) {
-            | true =>
+            colIndex > 0 && colIndex < cellsPerRow - 1 ?
               calculateNeighbours(cell, cells, rowIndex, colIndex)
-              |> calculateCell(cell)
-            | _ => cell
-            },
+              |> calculateCell(cell) :
+              cell,
           row,
-        )
-      | _ => row
-      },
+        ) :
+        row,
     cells,
   );
 

@@ -118,6 +118,16 @@ let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
   };
 };
 
+let calculateNeighbours = (cell, cells, r, c) => {
+  let neighbours = ref(0);
+  for (i in (-1) to 1) {
+    for (j in (-1) to 1) {
+      neighbours := neighbours^ + cells[r + i][c + j];
+    };
+  };
+  neighbours^ - cell;
+};
+
 let calculateNextCycle = (genMax, cellsPerRow, cells) =>
   Array.mapi(
     (rowIndex, row) =>
@@ -125,18 +135,13 @@ let calculateNextCycle = (genMax, cellsPerRow, cells) =>
         Array.mapi(
           (colIndex, cell) =>
             if (colIndex > 0 && colIndex < cellsPerRow - 1) {
-              let neighbours = ref(0);
-              for (i in (-1) to 1) {
-                for (j in (-1) to 1) {
-                  neighbours := neighbours^ + cells[rowIndex + i][colIndex + j];
-                };
-              };
-              neighbours := neighbours^ - cell;
-              if (cell === 1 && neighbours^ < 2) {
+              let neighbours =
+                calculateNeighbours(cell, cells, rowIndex, colIndex);
+              if (cell === 1 && neighbours < 2) {
                 0;
-              } else if (cell === 1 && neighbours^ > 3) {
+              } else if (cell === 1 && neighbours > 3) {
                 0;
-              } else if (cell === 0 && neighbours^ === 3) {
+              } else if (cell === 0 && neighbours === 3) {
                 1;
               } else {
                 cell;

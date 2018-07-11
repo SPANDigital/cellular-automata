@@ -1,6 +1,6 @@
 [%bs.raw {|require('./index.css')|}];
 
-[@bs.module "./registerServiceWorker"]
+[@bs.module "./RegisterServiceWorker"]
 external register_service_worker : unit => unit = "default";
 
 ReactDOMRe.renderToElementWithId(

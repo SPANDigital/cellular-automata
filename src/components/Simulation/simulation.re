@@ -2,46 +2,22 @@
 
 [@bs.val] external parseInt : (string, int) => int = "parseInt";
 
-type cells = array(array(int));
-
-type config = option(cells);
-
-type simData = list((string, config));
-
-type simStates =
-  | Playing
-  | Paused
-  | Stopped;
-
-type simTypes =
-  | Simple
-  | Stacking
-  | GOL;
-
-type ruleset = list(int);
-
-type rulesets = list((string, ruleset));
-
-type golpattern = list((int, int));
-
-type golpatterns = list((string, golpattern));
-
 type timerId = ref(option(Js.Global.intervalId));
 
 type state = {
-  simData,
-  storedData: ref(option(simData)),
+  simData: SimTypes.data,
+  storedData: ref(option(SimTypes.data)),
   generation: int,
-  status: simStates,
-  simType: simTypes,
+  status: SimTypes.states,
+  simType: SimTypes.types,
   timerId,
   containerWidth: int,
   containerHeight: int,
   cellsPerRow: int,
   genMax: int,
   cellWidth: int,
-  rulesets,
-  golpatterns,
+  rulesets: SimTypes.rulesets,
+  golpatterns: SimTypes.golpatterns,
   activeRuleset: string,
   activePattern: string,
   wrapEdges: bool,
@@ -52,135 +28,13 @@ type action =
   | Start
   | Stop
   | Pause
-  | SwitchType(simTypes)
+  | SwitchType(SimTypes.types)
   | SwitchRuleset(string)
   | ToggleWrapEdges
   | Init
   | UpdateCells;
 
 let component = ReasonReact.reducerComponent("Simulation");
-
-let binaryToRuleIndex = (l: int, m: int, r: int) : int => {
-  let lstring = string_of_int(l);
-  let mstring = string_of_int(m);
-  let rstring = string_of_int(r);
-  let str = {j|$lstring$mstring$rstring|j};
-  parseInt(str, 2);
-};
-
-let rules =
-    (~left: int, ~middle: int, ~right: int, ~ruleset as rules: ruleset) => {
-  let index = binaryToRuleIndex(left, middle, right);
-  List.nth(List.rev(rules), index);
-};
-
-let cellGenerator = (simType, ~cellsPerRow: int=21, ()) =>
-  switch (simType) {
-  | Simple => [|1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0|]
-  | _ => Array.init(cellsPerRow, i => i === cellsPerRow / 2 ? 1 : 0)
-  };
-
-let simTypeToString = (simType: simTypes) =>
-  switch (simType) {
-  | Simple => "Simple"
-  | Stacking => "Wolfram Elementary"
-  | GOL => "Game of Life"
-  };
-
-let stringToSimType = string =>
-  switch (string) {
-  | "Simple" => Simple
-  | "Wolfram Elementary" => Stacking
-  | "Game of Life" => GOL
-  | _ => Simple
-  };
-
-let simTypeToKey = (simType: simTypes) =>
-  switch (simType) {
-  | Simple => "simple"
-  | Stacking => "stacking"
-  | GOL => "gol"
-  };
-
-let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
-  let atFirstIndex = index === 0;
-  let atLastIndex = index === Array.length(cells) - 1;
-  let atFirstOrLastIndex = atFirstIndex || atLastIndex;
-  if (! wrapEdges && atFirstOrLastIndex) {
-    cell;
-  } else {
-    let lIndex = atFirstIndex ? 7 : index - 1;
-    let rIndex = atLastIndex ? 0 : index + 1;
-    let left = cells[lIndex];
-    let middle = cell;
-    let right = cells[rIndex];
-    rules(~left, ~middle, ~right, ~ruleset);
-  };
-};
-
-let calculateNeighbours = (cell, cells, r, c) => {
-  let neighbours = ref(0);
-  for (i in (-1) to 1) {
-    for (j in (-1) to 1) {
-      neighbours := neighbours^ + cells[r + i][c + j];
-    };
-  };
-  neighbours^ - cell;
-};
-
-let calculateCell = (cell, neighbours) =>
-  if (cell === 1 && neighbours < 2) {
-    0;
-  } else if (cell === 1 && neighbours > 3) {
-    0;
-  } else if (cell === 0 && neighbours === 3) {
-    1;
-  } else {
-    cell;
-  };
-
-let calculateNextCycle = (genMax, cellsPerRow, cells) =>
-  Array.mapi(
-    (rowIndex, row) =>
-      rowIndex > 0 && rowIndex < genMax - 1 ?
-        Array.mapi(
-          (colIndex, cell) =>
-            colIndex > 0 && colIndex < cellsPerRow - 1 ?
-              calculateNeighbours(cell, cells, rowIndex, colIndex)
-              |> calculateCell(cell) :
-              cell,
-          row,
-        ) :
-        row,
-    cells,
-  );
-
-let clearTimer = ({timerId, _}) =>
-  switch (timerId^) {
-  | Some(id) =>
-    Js.Global.clearInterval(id);
-    timerId := None;
-  | None => ()
-  };
-
-let getContainerHeight = ({simType, containerHeight, _}) =>
-  switch (simType) {
-  | Simple => "auto"
-  | _ => string_of_int(containerHeight) ++ "px"
-  };
-
-let getCellWidth = (~cellsPerRow as c: int, ~containerWidth as cw: int) =>
-  cw / c;
-
-let buildGrid = (~config: list((int, int)), ~cols: int, ~rows: int) => {
-  let grid = Array.make_matrix(rows, cols, 0);
-  config
-  |> List.iter(coord => {
-       let (y, x) = coord;
-       grid[y][x] = 1;
-     });
-  grid;
-};
 
 let make = _children => {
   let golInitState = [
@@ -189,6 +43,18 @@ let make = _children => {
     ("toad", [(5, 5), (5, 6), (5, 7), (4, 4), (4, 5), (4, 6)]),
     ("glider", [(3, 3), (4, 4), (4, 5), (3, 5), (2, 5)]),
   ];
+  let clearTimer = ({timerId, _}: state) =>
+    switch (timerId^) {
+    | Some(id) =>
+      Js.Global.clearInterval(id);
+      timerId := None;
+    | None => ()
+    };
+  let getContainerHeight = ({simType, containerHeight, _}) =>
+    switch (simType) {
+    | Simple => "auto"
+    | _ => string_of_int(containerHeight) ++ "px"
+    };
   {
     ...component,
     initialState: () => {
@@ -224,6 +90,7 @@ let make = _children => {
     reducer: (action, state: state) =>
       switch (action) {
       | Init =>
+        open Utils;
         let {cellsPerRow, containerWidth, containerHeight, _} = state;
         let cellWidth = getCellWidth(~cellsPerRow, ~containerWidth);
         let genMax = containerHeight / cellWidth + 1;
@@ -259,43 +126,46 @@ let make = _children => {
         let currentConfig = ListLabels.assoc(simType, state.simData);
         switch (currentConfig) {
         | Some(cells) =>
-          switch (state.simType) {
-          | GOL =>
-            let nextGen = calculateNextCycle(genMax, cellsPerRow, cells);
-            let newConfigTuple = (simType, Some(nextGen));
-            let currData = ListLabels.remove_assq(simType, state.simData);
-            ReasonReact.Update({
-              ...state,
-              simData: [newConfigTuple, ...currData],
-            });
-          | Simple
-          | Stacking =>
-            let ruleset =
-              ListLabels.assoc(state.activeRuleset, state.rulesets);
-            let {wrapEdges, generation, _} = state;
-            let lastItemIndex = Array.length(cells) - 1;
-            let currentGeneration = cells[lastItemIndex];
-            let nextGen =
-              Array.mapi(
-                calculateNextGen(currentGeneration, ruleset, wrapEdges),
-                currentGeneration,
-              );
-            let newCells =
-              switch (state.simType) {
-              | Simple => [nextGen]
-              | _ =>
-                let currentCells =
-                  generation > genMax ?
-                    cells |> Array.to_list |> List.tl : cells |> Array.to_list;
-                currentCells @ [nextGen];
-              };
-            let newConfigTuple = (simType, Some(Array.of_list(newCells)));
-            let currData = ListLabels.remove_assq(simType, state.simData);
-            ReasonReact.Update({
-              ...state,
-              simData: [newConfigTuple, ...currData],
-            });
-          }
+          Utils.(
+            switch (state.simType) {
+            | GOL =>
+              let nextGen = calculateNextCycle(genMax, cellsPerRow, cells);
+              let newConfigTuple = (simType, Some(nextGen));
+              let currData = ListLabels.remove_assq(simType, state.simData);
+              ReasonReact.Update({
+                ...state,
+                simData: [newConfigTuple, ...currData],
+              });
+            | Simple
+            | Stacking =>
+              let ruleset =
+                ListLabels.assoc(state.activeRuleset, state.rulesets);
+              let {wrapEdges, generation, _} = state;
+              let lastItemIndex = Array.length(cells) - 1;
+              let currentGeneration = cells[lastItemIndex];
+              let nextGen =
+                Array.mapi(
+                  calculateNextGen(currentGeneration, ruleset, wrapEdges),
+                  currentGeneration,
+                );
+              let newCells =
+                switch (state.simType) {
+                | Simple => [nextGen]
+                | _ =>
+                  let currentCells =
+                    generation > genMax ?
+                      cells |> Array.to_list |> List.tl :
+                      cells |> Array.to_list;
+                  currentCells @ [nextGen];
+                };
+              let newConfigTuple = (simType, Some(Array.of_list(newCells)));
+              let currData = ListLabels.remove_assq(simType, state.simData);
+              ReasonReact.Update({
+                ...state,
+                simData: [newConfigTuple, ...currData],
+              });
+            }
+          )
         | None => ReasonReact.NoUpdate
         };
       | NextGeneration =>
@@ -383,13 +253,18 @@ let make = _children => {
               (ReasonReact.string({j|Generation: $generation|j}))
             </span>
             <select
-              value=(simTypeToString(self.state.simType))
-              onChange=(
-                event =>
-                  ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                  |> stringToSimType
-                  |> ((simType: simTypes) => self.send(SwitchType(simType)))
-              )>
+              value=(SimTypes.typeToString(self.state.simType))
+              onChange=SimTypes.(
+                         event =>
+                           ReactDOMRe.domElementToObj(
+                             ReactEventRe.Form.target(event),
+                           )##value
+                           |> stringToType
+                           |> (
+                             (simType: types) =>
+                               self.send(SwitchType(simType))
+                           )
+                       )>
               <option> (ReasonReact.string("Simple")) </option>
               <option> (ReasonReact.string("Wolfram Elementary")) </option>
               <option> (ReasonReact.string("Game of Life")) </option>
@@ -440,7 +315,7 @@ let make = _children => {
               )
             )>
             {
-              let simType = simTypeToKey(self.state.simType);
+              let simType = SimTypes.typeToKey(self.state.simType);
               let config = ListLabels.assoc(simType, self.state.simData);
               switch (config) {
               | Some(cells) =>

@@ -1,5 +1,5 @@
 {
-  "name": "reason-scripts",
+  "name": "cellular-automata",
   "sources": {
     "dir": "src",
     "subdirs": true
@@ -8,14 +8,14 @@
   "reason": {
     "react-jsx": 2
   },
-  "bsc-flags": ["-bs-super-errors"],
+  "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
   "refmt": 3,
   "package-specs": {
     "module": "es6",
     "in-source": true
   },
   "warnings": {
-    "number": "+R"
+    "number": "-44-102"
   },
   "suffix": ".bs.js",
   "namespace": true

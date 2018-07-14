@@ -1,4 +1,4 @@
-[%bs.raw {|require('./simulation.css')|}];
+[%bs.raw {|require('./simulation.scss')|}];
 
 [@bs.val] external parseInt : (string, int) => int = "parseInt";
 

@@ -1,4 +1,4 @@
-[%bs.raw {|require('./home.css')|}];
+[%bs.raw {|require('./home.scss')|}];
 
 let component = ReasonReact.statelessComponent("Home");
 

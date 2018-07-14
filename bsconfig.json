@@ -4,19 +4,19 @@
     "dir": "src",
     "subdirs": true
   },
-  "bs-dependencies": ["reason-react", "@glennsl/bs-jest", "re-classnames"],
+  "bs-dependencies": ["reason-react", "re-classnames"],
   "reason": {
     "react-jsx": 2
   },
   "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
   "refmt": 3,
-  "package-specs": {
-    "module": "es6",
-    "in-source": true
-  },
   "warnings": {
     "number": "-44-102"
   },
   "suffix": ".bs.js",
-  "namespace": true
+  "namespace": true,
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  }
 }

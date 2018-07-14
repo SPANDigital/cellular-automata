@@ -1,4 +1,4 @@
-[%bs.raw {|require('./index.css')|}];
+[%bs.raw {|require('./index.scss')|}];
 
 [@bs.module "./RegisterServiceWorker"]
 external register_service_worker : unit => unit = "default";

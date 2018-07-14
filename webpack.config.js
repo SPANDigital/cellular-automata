@@ -1,5 +1,7 @@
 const path = require("path");
 var HtmlWebpackPlugin = require("html-webpack-plugin");
+const history = require("connect-history-api-fallback");
+const convert = require("koa-connect");
 
 module.exports = {
   mode: "development",
@@ -24,6 +26,16 @@ module.exports = {
         loaders: ["style-loader", "css-loader", "sass-loader"]
       }
     ]
+  },
+  serve: {
+    port: 3000,
+    content: [__dirname],
+    add: (app, middleware, options) => {
+      const historyOptions = {
+        // add options here
+      };
+      app.use(convert(history(historyOptions)));
+    }
   },
   plugins: [
     new HtmlWebpackPlugin({

@@ -50,6 +50,20 @@ let make = _children => {
     | Simple => "auto"
     | _ => string_of_int(containerHeight) ++ "px"
     };
+  let makeConfigs = (~cellsPerRow, ~golPattern, ~genMax) => {
+    let initialSimple = [|Utils.cellGenerator(Simple, ())|];
+    let initialStacking = [|
+      Utils.cellGenerator(Stacking, ~cellsPerRow, ()),
+    |];
+    let golConfig = ListLabels.assoc(golPattern, SimTypes.Init.gol);
+    let initialGrid =
+      Utils.buildGrid(~config=golConfig, ~cols=cellsPerRow, ~rows=genMax);
+    [
+      ("simple", Some(initialSimple)),
+      ("stacking", Some(initialStacking)),
+      ("gol", Some(initialGrid)),
+    ];
+  };
   {
     ...component,
     initialState: () => {
@@ -64,8 +78,8 @@ let make = _children => {
       cellsPerRow: 60,
       genMax: 0,
       cellWidth: 0,
-      rulesets: SimTypes.Init.Data.rulesets,
-      golpatterns: SimTypes.Init.Data.gol,
+      rulesets: SimTypes.Init.rulesets,
+      golpatterns: SimTypes.Init.gol,
       activeRuleset: "90",
       activePattern: "block",
       activeGolPattern: "glider",
@@ -85,11 +99,7 @@ let make = _children => {
         let cellWidth = Utils.getCellWidth(~cellsPerRow, ~containerWidth);
         let genMax = containerHeight / cellWidth + 1;
         let config =
-          SimTypes.Init.makeConfigs(
-            ~cellsPerRow,
-            ~golPattern=activeGolPattern,
-            ~genMax,
-          );
+          makeConfigs(~cellsPerRow, ~golPattern=activeGolPattern, ~genMax);
         ReasonReact.Update({...state, cellWidth, genMax, simData: config});
       | ToggleWrapEdges =>
         ReasonReact.Update({...state, wrapEdges: ! state.wrapEdges})
@@ -97,26 +107,17 @@ let make = _children => {
         ReasonReact.Update({...state, activeRuleset: ruleno})
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
-        let simType =
-          switch (state.simType) {
-          | Simple => "simple"
-          | Stacking => "stacking"
-          | GOL => "gol"
-          };
+        let simType = SimTypes.Helpers.typeToKey(state.simType);
         let {genMax, cellsPerRow, _} = state;
         let currentConfig = ListLabels.assoc(simType, state.simData);
         switch (currentConfig) {
         | Some(cells) =>
+          let tempConfig = ref(None);
           Utils.(
             switch (state.simType) {
             | GOL =>
               let nextGen = calculateNextCycle(genMax, cellsPerRow, cells);
-              let newConfigTuple = (simType, Some(nextGen));
-              let currData = ListLabels.remove_assq(simType, state.simData);
-              ReasonReact.Update({
-                ...state,
-                simData: [newConfigTuple, ...currData],
-              });
+              tempConfig := Some(nextGen);
             | Simple
             | Stacking =>
               let ruleset =
@@ -130,23 +131,24 @@ let make = _children => {
                   currentGeneration,
                 );
               let newCells =
-                switch (state.simType) {
-                | Simple => [nextGen]
-                | _ =>
-                  let currentCells =
+                simType === "simple" ?
+                  [nextGen] :
+                  (
                     generation > genMax ?
                       cells |> Array.to_list |> List.tl :
-                      cells |> Array.to_list;
-                  currentCells @ [nextGen];
-                };
-              let newConfigTuple = (simType, Some(Array.of_list(newCells)));
-              let currData = ListLabels.remove_assq(simType, state.simData);
-              ReasonReact.Update({
-                ...state,
-                simData: [newConfigTuple, ...currData],
-              });
+                      cells |> Array.to_list
+                  )
+                  @ [nextGen];
+              tempConfig := Some(Array.of_list(newCells));
             }
-          )
+          );
+          let newConfig = tempConfig^;
+          let newConfigTuple = (simType, newConfig);
+          let currData = ListLabels.remove_assq(simType, state.simData);
+          ReasonReact.Update({
+            ...state,
+            simData: [newConfigTuple, ...currData],
+          });
         | None => ReasonReact.NoUpdate
         };
       | NextGeneration =>
@@ -158,7 +160,7 @@ let make = _children => {
         if (state.status === Stopped) {
           state.storedData := Some(state.simData);
         };
-        if (state.status !== Playing) {
+        state.status !== Playing ?
           ReasonReact.UpdateWithSideEffects(
             {...state, status: Playing},
             (
@@ -173,10 +175,8 @@ let make = _children => {
                 self.onUnmount(() => clearTimer(state));
               }
             ),
-          );
-        } else {
+          ) :
           ReasonReact.NoUpdate;
-        };
       | Stop =>
         let storedData =
           switch (state.storedData^) {
@@ -188,14 +188,12 @@ let make = _children => {
           (_self => clearTimer(state)),
         );
       | Pause =>
-        if (state.status === Playing) {
+        state.status === Playing ?
           ReasonReact.UpdateWithSideEffects(
             {...state, status: Paused},
             (_self => clearTimer(state)),
-          );
-        } else {
-          ReasonReact.NoUpdate;
-        }
+          ) :
+          ReasonReact.NoUpdate
       },
     render: self => {
       let {generation, _} = self.state;

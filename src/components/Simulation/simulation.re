@@ -20,6 +20,7 @@ type state = {
   golpatterns: SimTypes.golpatterns,
   activeRuleset: string,
   activePattern: string,
+  activeGolPattern: string,
   wrapEdges: bool,
 };
 
@@ -37,12 +38,6 @@ type action =
 let component = ReasonReact.reducerComponent("Simulation");
 
 let make = _children => {
-  let golInitState = [
-    ("block", [(1, 1), (1, 2), (2, 1), (2, 2)]),
-    ("blinker", [(2, 3), (3, 3), (4, 3)]),
-    ("toad", [(5, 5), (5, 6), (5, 7), (4, 4), (4, 5), (4, 6)]),
-    ("glider", [(3, 3), (4, 4), (4, 5), (3, 5), (2, 5)]),
-  ];
   let clearTimer = ({timerId, _}: state) =>
     switch (timerId^) {
     | Some(id) =>
@@ -69,47 +64,33 @@ let make = _children => {
       cellsPerRow: 60,
       genMax: 0,
       cellWidth: 0,
-      rulesets: [
-        ("90", [0, 1, 0, 1, 1, 0, 1, 0]),
-        ("222", [1, 1, 0, 1, 1, 1, 1, 0]),
-        ("190", [1, 0, 1, 1, 1, 1, 1, 0]),
-        ("30", [0, 0, 0, 1, 1, 1, 1, 0]),
-        ("110", [0, 1, 1, 0, 1, 1, 1, 0]),
-      ],
-      golpatterns: [
-        ("block", [(1, 1), (1, 2), (2, 1), (2, 2)]),
-        ("blinker", [(2, 3), (3, 3), (4, 3)]),
-        ("toad", [(5, 5), (5, 6), (5, 7), (4, 4), (4, 5), (4, 6)]),
-        ("glider", [(3, 3), (4, 4), (4, 5), (3, 5), (2, 5)]),
-      ],
+      rulesets: SimTypes.Init.Data.rulesets,
+      golpatterns: SimTypes.Init.Data.gol,
       activeRuleset: "90",
       activePattern: "block",
+      activeGolPattern: "glider",
       wrapEdges: false,
     },
     didMount: self => self.send(Init),
     reducer: (action, state: state) =>
       switch (action) {
       | Init =>
-        open Utils;
-        let {cellsPerRow, containerWidth, containerHeight, _} = state;
-        let cellWidth = getCellWidth(~cellsPerRow, ~containerWidth);
+        let {
+          cellsPerRow,
+          containerWidth,
+          containerHeight,
+          activeGolPattern,
+          _,
+        } = state;
+        let cellWidth = Utils.getCellWidth(~cellsPerRow, ~containerWidth);
         let genMax = containerHeight / cellWidth + 1;
-        let initialSimple = [|cellGenerator(Simple, ())|];
-        let initialStacking = [|cellGenerator(Stacking, ~cellsPerRow, ())|];
-        let golConfig = ListLabels.assoc("glider", golInitState);
-        let initialGrid =
-          buildGrid(~config=golConfig, ~cols=cellsPerRow, ~rows=genMax);
-        let initialSimData = [
-          ("simple", Some(initialSimple)),
-          ("stacking", Some(initialStacking)),
-          ("gol", Some(initialGrid)),
-        ];
-        ReasonReact.Update({
-          ...state,
-          cellWidth,
-          genMax,
-          simData: initialSimData,
-        });
+        let config =
+          SimTypes.Init.makeConfigs(
+            ~cellsPerRow,
+            ~golPattern=activeGolPattern,
+            ~genMax,
+          );
+        ReasonReact.Update({...state, cellWidth, genMax, simData: config});
       | ToggleWrapEdges =>
         ReasonReact.Update({...state, wrapEdges: ! state.wrapEdges})
       | SwitchRuleset(ruleno) =>
@@ -253,13 +234,13 @@ let make = _children => {
               (ReasonReact.string({j|Generation: $generation|j}))
             </span>
             <select
-              value=(SimTypes.typeToString(self.state.simType))
+              value=(SimTypes.Helpers.typeToString(self.state.simType))
               onChange=SimTypes.(
                          event =>
                            ReactDOMRe.domElementToObj(
                              ReactEventRe.Form.target(event),
                            )##value
-                           |> stringToType
+                           |> Helpers.stringToType
                            |> (
                              (simType: types) =>
                                self.send(SwitchType(simType))
@@ -315,7 +296,7 @@ let make = _children => {
               )
             )>
             {
-              let simType = SimTypes.typeToKey(self.state.simType);
+              let simType = SimTypes.Helpers.typeToKey(self.state.simType);
               let config = ListLabels.assoc(simType, self.state.simData);
               switch (config) {
               | Some(cells) =>

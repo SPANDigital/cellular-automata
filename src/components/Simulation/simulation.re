@@ -8,7 +8,7 @@ type state = {
   simData: SimTypes.data,
   storedData: ref(option(SimTypes.data)),
   generation: int,
-  status: SimTypes.states,
+  status: SimTypes.playerStates,
   simType: SimTypes.types,
   timerId,
   containerWidth: int,
@@ -22,13 +22,12 @@ type state = {
   activePattern: string,
   activeGolPattern: string,
   wrapEdges: bool,
+  playerActions: array(SimTypes.playerAction),
 };
 
 type action =
   | NextGeneration
-  | Start
-  | Stop
-  | Pause
+  | PlayerAction(SimTypes.playerAction)
   | SwitchType(SimTypes.types)
   | SwitchRuleset(string)
   | ToggleWrapEdges
@@ -38,6 +37,9 @@ type action =
 let component = ReasonReact.reducerComponent("Simulation");
 
 let make = _children => {
+  /* -------------------------------------
+     Internal Methods
+     -------------------------------------- */
   let clearTimer = ({timerId, _}: state) =>
     switch (timerId^) {
     | Some(id) =>
@@ -64,6 +66,9 @@ let make = _children => {
       ("gol", Some(initialGrid)),
     ];
   };
+  /* -------------------------------------
+      Component Record
+     -------------------------------------- */
   {
     ...component,
     initialState: () => {
@@ -84,8 +89,15 @@ let make = _children => {
       activePattern: "block",
       activeGolPattern: "glider",
       wrapEdges: false,
+      playerActions: [|Stop, Start, Pause|],
     },
+    /* -------------------------------------
+       Lifecycle Methdos
+       -------------------------------------- */
     didMount: self => self.send(Init),
+    /* -------------------------------------
+       Reducer
+       -------------------------------------- */
     reducer: (action, state: state) =>
       switch (action) {
       | Init =>
@@ -108,7 +120,7 @@ let make = _children => {
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
         let simType = SimTypes.Helpers.typeToKey(state.simType);
-        let {genMax, cellsPerRow, _} = state;
+        let {genMax, cellsPerRow, wrapEdges, generation, _} = state;
         let currentConfig = ListLabels.assoc(simType, state.simData);
         switch (currentConfig) {
         | Some(cells) =>
@@ -122,7 +134,6 @@ let make = _children => {
             | Stacking =>
               let ruleset =
                 ListLabels.assoc(state.activeRuleset, state.rulesets);
-              let {wrapEdges, generation, _} = state;
               let lastItemIndex = Array.length(cells) - 1;
               let currentGeneration = cells[lastItemIndex];
               let nextGen =
@@ -156,47 +167,53 @@ let make = _children => {
           {...state, generation: state.generation + 1},
           (self => self.send(UpdateCells)),
         )
-      | Start =>
-        if (state.status === Stopped) {
-          state.storedData := Some(state.simData);
-        };
-        state.status !== Playing ?
-          ReasonReact.UpdateWithSideEffects(
-            {...state, status: Playing},
-            (
-              self => {
-                state.timerId :=
-                  Some(
-                    Js.Global.setInterval(
-                      () => self.send(NextGeneration),
-                      100,
-                    ),
-                  );
-                self.onUnmount(() => clearTimer(state));
-              }
-            ),
-          ) :
-          ReasonReact.NoUpdate;
-      | Stop =>
-        let storedData =
-          switch (state.storedData^) {
-          | Some(data) => data
-          | None => state.simData
+      | PlayerAction(actionType) =>
+        switch (actionType) {
+        | Start =>
+          if (state.status === Stopped) {
+            state.storedData := Some(state.simData);
           };
-        ReasonReact.UpdateWithSideEffects(
-          {...state, generation: 1, status: Stopped, simData: storedData},
-          (_self => clearTimer(state)),
-        );
-      | Pause =>
-        state.status === Playing ?
+          state.status !== Playing ?
+            ReasonReact.UpdateWithSideEffects(
+              {...state, status: Playing},
+              (
+                self => {
+                  state.timerId :=
+                    Some(
+                      Js.Global.setInterval(
+                        () => self.send(NextGeneration),
+                        100,
+                      ),
+                    );
+                  self.onUnmount(() => clearTimer(state));
+                }
+              ),
+            ) :
+            ReasonReact.NoUpdate;
+        | Stop =>
+          let storedData =
+            switch (state.storedData^) {
+            | Some(data) => data
+            | None => state.simData
+            };
           ReasonReact.UpdateWithSideEffects(
-            {...state, status: Paused},
+            {...state, generation: 1, status: Stopped, simData: storedData},
             (_self => clearTimer(state)),
-          ) :
-          ReasonReact.NoUpdate
+          );
+        | Pause =>
+          state.status === Playing ?
+            ReasonReact.UpdateWithSideEffects(
+              {...state, status: Paused},
+              (_self => clearTimer(state)),
+            ) :
+            ReasonReact.NoUpdate
+        }
       },
+    /* -------------------------------------
+       Render
+       -------------------------------------- */
     render: self => {
-      let {generation, _} = self.state;
+      let {generation, status, playerActions, _} = self.state;
       <div className="Page1">
         <div
           className="container"
@@ -207,27 +224,23 @@ let make = _children => {
             )
           )>
           <div className="controls">
-            <button
-              className=(
-                "navButton " ++ (self.state.status === Stopped ? "active" : "")
+            (
+              ReasonReact.array(
+                playerActions
+                |> Array.map(action => {
+                     let label = SimTypes.playerActionToString(action);
+                     <ControlButton
+                       key=label
+                       label
+                       active=(
+                         status === SimTypes.playerActionToState(action)
+                       )
+                       action=(PlayerAction(action))
+                       sendAction=self.send
+                     />;
+                   }),
               )
-              onClick=(_event => self.send(Stop))>
-              (ReasonReact.string("Reset"))
-            </button>
-            <button
-              className=(
-                "navButton " ++ (self.state.status === Playing ? "active" : "")
-              )
-              onClick=(_event => self.send(Start))>
-              (ReasonReact.string("Play"))
-            </button>
-            <button
-              className=(
-                "navButton " ++ (self.state.status === Paused ? "active" : "")
-              )
-              onClick=(_event => self.send(Pause))>
-              (ReasonReact.string("Pause"))
-            </button>
+            )
             <span className="generation">
               (ReasonReact.string({j|Generation: $generation|j}))
             </span>

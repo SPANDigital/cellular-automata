@@ -4,10 +4,29 @@ type config = option(cells);
 
 type data = list((string, config));
 
-type states =
+type playerStates =
   | Playing
   | Paused
   | Stopped;
+
+type playerAction =
+  | Start
+  | Stop
+  | Pause;
+
+let playerActionToState = playerAction =>
+  switch (playerAction) {
+  | Start => Playing
+  | Stop => Stopped
+  | Pause => Paused
+  };
+
+let playerActionToString = playerAction =>
+  switch (playerAction) {
+  | Start => "Play"
+  | Stop => "Reset"
+  | Pause => "Pause"
+  };
 
 type types =
   | Simple

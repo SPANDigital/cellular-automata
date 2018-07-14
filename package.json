@@ -4,27 +4,33 @@
   "private": true,
   "dependencies": {
     "normalize-scss": "^7.0.1",
-    "npm-run-all": "^4.1.3",
     "re-classnames": "^2.0.0",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
     "react-transition-group": "^2.3.1",
-    "reason-scripts": "0.9.0"
+    "reason-react": "^0.4.1"
   },
   "scripts": {
     "build-css": "node-sass-chokidar src/ -o src/",
     "watch-css": "npm run build-css && node-sass-chokidar src/ -o src/ --watch --recursive",
-    "start": "npm-run-all -p watch-css start-js",
-    "build": "npm-run-all build-css build-js",
-    "start-js": "react-scripts start",
-    "build-js": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject",
-    "prepare": "npm link bs-platform"
+    "build": "bsb -make-world",
+    "start": "bsb -make-world -w",
+    "clean": "bsb -clean-world",
+    "pages": "rsync -r public/ pages",
+    "webpack": "webpack-serve ./webpack.config.js"
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.2",
+    "bs-platform": "^4.0.0",
+    "css-loader": "^1.0.0",
+    "html-webpack-plugin": "^3.2.0",
     "node-sass-chokidar": "^1.3.0",
-    "reason-react": "^0.4.1"
+    "npm-run-all": "^4.1.3",
+    "sass-loader": "^7.0.3",
+    "style-loader": "^0.21.0",
+    "url-loader": "^1.0.1",
+    "webpack": "^4.16.0",
+    "webpack-cli": "^3.0.8",
+    "webpack-serve": "^2.0.2"
   }
 }

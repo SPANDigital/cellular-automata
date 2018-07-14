@@ -225,21 +225,18 @@ let make = _children => {
           )>
           <div className="controls">
             (
-              ReasonReact.array(
-                playerActions
-                |> Array.map(action => {
-                     let label = SimTypes.playerActionToString(action);
-                     <ControlButton
-                       key=label
-                       label
-                       active=(
-                         status === SimTypes.playerActionToState(action)
-                       )
-                       action=(PlayerAction(action))
-                       sendAction=self.send
-                     />;
-                   }),
-              )
+              playerActions
+              |> Array.map(action => {
+                   let label = SimTypes.playerActionToString(action);
+                   <ControlButton
+                     key=label
+                     label
+                     active=(status === SimTypes.playerActionToState(action))
+                     action=(PlayerAction(action))
+                     sendAction=self.send
+                   />;
+                 })
+              |> ReasonReact.array
             )
             <span className="generation">
               (ReasonReact.string({j|Generation: $generation|j}))

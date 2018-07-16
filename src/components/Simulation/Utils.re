@@ -31,16 +31,16 @@ let calculateNextGen = (cells, ruleset, wrapEdges, index, cell) => {
   let atFirstIndex = index === 0;
   let atLastIndex = index === Array.length(cells) - 1;
   let atFirstOrLastIndex = atFirstIndex || atLastIndex;
-  if (! wrapEdges && atFirstOrLastIndex) {
-    cell;
-  } else {
-    let lIndex = atFirstIndex ? 7 : index - 1;
-    let rIndex = atLastIndex ? 0 : index + 1;
-    let left = cells[lIndex];
-    let middle = cell;
-    let right = cells[rIndex];
-    rules(~left, ~middle, ~right, ~ruleset);
-  };
+  ! wrapEdges && atFirstOrLastIndex ?
+    cell :
+    {
+      let lIndex = atFirstIndex ? 7 : index - 1;
+      let rIndex = atLastIndex ? 0 : index + 1;
+      let left = cells[lIndex];
+      let middle = cell;
+      let right = cells[rIndex];
+      rules(~left, ~middle, ~right, ~ruleset);
+    };
 };
 
 let calculateNeighbours = (cell, cells, r, c) => {

@@ -32,6 +32,20 @@
   padding-bottom: 5px;
 }
 
+.stacking-controls {
+  display: inline-block;
+  margin-left: 10px;
+  select {
+    margin-right: 10px;
+  }
+  label {
+    input {
+      display: inline-block;
+      margin-left: 5px;
+    }
+  }
+}
+
 .generation {
   float: right;
 }

@@ -15,6 +15,13 @@
     height: 90px;
     width: 90px;
     position: absolute;
+    #center {
+      fill: #db4d3f;
+    }
+    polygon {
+      fill: #fff;
+      stroke-width: 0;
+    }
     #poly-1 {
       animation: poly infinite 20s linear 0s;
     }
@@ -43,10 +50,10 @@
 }
 
 .App-header {
-  background-color: #222;
+  background-color: #fff;
   height: 150px;
   padding: 20px;
-  color: white;
+  color: #222;
 }
 
 .App-intro {
@@ -76,7 +83,7 @@ main {
   font-size: 14px;
   outline: 0;
   &.active {
-    color: #db4d3f;
+    color: #fff;
     background: #222;
     border: 1px solid #db4d3f;
   }
@@ -93,12 +100,12 @@ main {
 
 @keyframes poly {
   0% {
-    fill: #222;
+    fill: #fff;
   }
   50% {
-    fill: #db4d3f;
+    fill: #222;
   }
   100% {
-    fill: #222;
+    fill: #fff;
   }
 }

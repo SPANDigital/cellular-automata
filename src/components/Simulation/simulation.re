@@ -260,7 +260,7 @@ let make = _children => {
             </select>
             (
               self.state.simType === Stacking ?
-                <div>
+                <div className="stacking-controls">
                   <select
                     value=self.state.activeRuleset
                     onChange=(
@@ -285,12 +285,15 @@ let make = _children => {
                       |> ReasonReact.array
                     )
                   </select>
-                  <input
-                    _type="checkbox"
-                    value="wrapedges"
-                    checked=self.state.wrapEdges
-                    onChange=(_event => self.send(ToggleWrapEdges))
-                  />
+                  <label>
+                    (ReasonReact.string("Wrap Edges"))
+                    <input
+                      _type="checkbox"
+                      value="wrapedges"
+                      checked=self.state.wrapEdges
+                      onChange=(_event => self.send(ToggleWrapEdges))
+                    />
+                  </label>
                 </div> :
                 ReasonReact.null
             )

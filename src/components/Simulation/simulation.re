@@ -30,6 +30,7 @@ type action =
   | PlayerAction(SimTypes.playerAction)
   | SwitchType(SimTypes.types)
   | SwitchRuleset(string)
+  | SwitchGolPattern(string)
   | ToggleWrapEdges
   | Init
   | UpdateCells;
@@ -52,14 +53,16 @@ let make = _children => {
     | Simple => "auto"
     | _ => string_of_int(containerHeight) ++ "px"
     };
-  let makeConfigs = (~cellsPerRow, ~golPattern, ~genMax) => {
+  let makeGolGrid = ({cellsPerRow, activeGolPattern, genMax, _}) => {
+    let golConfig = ListLabels.assoc(activeGolPattern, SimTypes.Init.gol);
+    Utils.buildGrid(~config=golConfig, ~cols=cellsPerRow, ~rows=genMax);
+  };
+  let makeConfigs = ({cellsPerRow, _} as state, ~genMax) => {
     let initialSimple = [|Utils.cellGenerator(Simple, ())|];
     let initialStacking = [|
       Utils.cellGenerator(Stacking, ~cellsPerRow, ()),
     |];
-    let golConfig = ListLabels.assoc(golPattern, SimTypes.Init.gol);
-    let initialGrid =
-      Utils.buildGrid(~config=golConfig, ~cols=cellsPerRow, ~rows=genMax);
+    let initialGrid = makeGolGrid({...state, genMax});
     [
       ("simple", Some(initialSimple)),
       ("stacking", Some(initialStacking)),
@@ -101,22 +104,21 @@ let make = _children => {
     reducer: (action, state: state) =>
       switch (action) {
       | Init =>
-        let {
-          cellsPerRow,
-          containerWidth,
-          containerHeight,
-          activeGolPattern,
-          _,
-        } = state;
+        let {cellsPerRow, containerWidth, containerHeight, _} = state;
         let cellWidth = Utils.getCellWidth(~cellsPerRow, ~containerWidth);
         let genMax = containerHeight / cellWidth + 1;
-        let config =
-          makeConfigs(~cellsPerRow, ~golPattern=activeGolPattern, ~genMax);
+        let config = makeConfigs(state, ~genMax);
         ReasonReact.Update({...state, cellWidth, genMax, simData: config});
       | ToggleWrapEdges =>
         ReasonReact.Update({...state, wrapEdges: ! state.wrapEdges})
       | SwitchRuleset(ruleno) =>
         ReasonReact.Update({...state, activeRuleset: ruleno})
+      | SwitchGolPattern(pattern) =>
+        let currData = ListLabels.remove_assq("gol", state.simData);
+        let golConfig = makeGolGrid({...state, activeGolPattern: pattern});
+        let simData = [("gol", Some(golConfig)), ...currData];
+        state.storedData := Some(simData);
+        ReasonReact.Update({...state, activeGolPattern: pattern, simData});
       | SwitchType(simType) => ReasonReact.Update({...state, simType})
       | UpdateCells =>
         let simType = SimTypes.Helpers.typeToKey(state.simType);
@@ -213,7 +215,18 @@ let make = _children => {
        Render
        -------------------------------------- */
     render: self => {
-      let {generation, status, playerActions, _} = self.state;
+      let {
+        generation,
+        status,
+        playerActions,
+        activeRuleset,
+        rulesets,
+        simType,
+        golpatterns,
+        activeGolPattern,
+        _,
+      } =
+        self.state;
       <div className="Page1">
         <div
           className="container"
@@ -259,32 +272,24 @@ let make = _children => {
               <option> (ReasonReact.string("Game of Life")) </option>
             </select>
             (
-              self.state.simType === Stacking ?
+              switch (simType) {
+              | GOL =>
                 <div className="stacking-controls">
-                  <select
-                    value=self.state.activeRuleset
-                    onChange=(
-                      event =>
-                        ReactDOMRe.domElementToObj(
-                          ReactEventRe.Form.target(event),
-                        )##value
-                        |> (
-                          (rulecode: string) =>
-                            self.send(SwitchRuleset(rulecode))
-                        )
-                    )>
-                    (
-                      self.state.rulesets
-                      |> List.map(rule => {
-                           let (rulecode, _) = rule;
-                           <option key=rulecode>
-                             (ReasonReact.string(rulecode))
-                           </option>;
-                         })
-                      |> Array.of_list
-                      |> ReasonReact.array
-                    )
-                  </select>
+                  <RulesSelect
+                    activeRuleset=activeGolPattern
+                    sendAction=self.send
+                    action=(a => SwitchGolPattern(a))
+                    rulesets=golpatterns
+                  />
+                </div>
+              | Stacking =>
+                <div className="stacking-controls">
+                  <RulesSelect
+                    activeRuleset
+                    sendAction=self.send
+                    action=(a => SwitchRuleset(a))
+                    rulesets
+                  />
                   <label>
                     (ReasonReact.string("Wrap Edges"))
                     <input
@@ -294,8 +299,9 @@ let make = _children => {
                       onChange=(_event => self.send(ToggleWrapEdges))
                     />
                   </label>
-                </div> :
-                ReasonReact.null
+                </div>
+              | _ => ReasonReact.null
+              }
             )
           </div>
           <div

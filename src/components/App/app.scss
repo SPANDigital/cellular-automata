@@ -62,13 +62,15 @@
 
 nav {
   padding: 10px;
+  height: 30px;
+  border-bottom: 1px solid black;
 }
 
 main {
   position: relative;
   width: 100%;
   height: calc(100vh - 228px);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .navButton {

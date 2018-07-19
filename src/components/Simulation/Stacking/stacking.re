@@ -1,6 +1,12 @@
 let component = ReasonReact.statelessComponent("Stacking");
 
-let make = (~cellWidth: int, ~cells: array(array(int)), _children) => {
+let make =
+    (
+      ~cellWidth: int,
+      ~cells: array(array(int)),
+      ~cellStatus: bool=false,
+      _children,
+    ) => {
   ...component,
   render: _self => {
     let cells =
@@ -9,8 +15,8 @@ let make = (~cellWidth: int, ~cells: array(array(int)), _children) => {
           ReasonReact.array(
             Array.mapi(
               (colIndex, cell) =>
-                cell === 1 ?
-                  <Cell
+                cellStatus ?
+                  <SmartCell
                     key=(
                       string_of_int(rowIndex)
                       ++ "-"
@@ -21,7 +27,11 @@ let make = (~cellWidth: int, ~cells: array(array(int)), _children) => {
                     cell
                     cellSize=cellWidth
                   /> :
-                  ReasonReact.null,
+                  Cell.render(
+                    ~cellSize=cellWidth,
+                    ~indexes=(rowIndex, colIndex),
+                    ~className=cell === 1 ? "alive" : "",
+                  ),
               cellRow,
             ),
           ),

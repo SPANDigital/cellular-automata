@@ -67,6 +67,12 @@
       background: #000;
       color: #fff;
     }
+    &.born {
+      background: blue;
+    }
+    &.dying {
+      background: red;
+    }
     &.simple {
       line-height: 30px;
       height: 30px;

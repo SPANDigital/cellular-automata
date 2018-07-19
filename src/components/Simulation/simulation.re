@@ -22,6 +22,7 @@ type state = {
   activePattern: string,
   activeGolPattern: string,
   wrapEdges: bool,
+  cellState: bool,
   playerActions: array(SimTypes.playerAction),
 };
 
@@ -32,6 +33,7 @@ type action =
   | SwitchRuleset(string)
   | SwitchGolPattern(string)
   | ToggleWrapEdges
+  | ToggleCellState
   | Init
   | UpdateCells;
 
@@ -92,6 +94,7 @@ let make = _children => {
       activePattern: "block",
       activeGolPattern: "glider",
       wrapEdges: false,
+      cellState: false,
       playerActions: [|Stop, Start, Pause|],
     },
     /* -------------------------------------
@@ -111,6 +114,8 @@ let make = _children => {
         ReasonReact.Update({...state, cellWidth, genMax, simData: config});
       | ToggleWrapEdges =>
         ReasonReact.Update({...state, wrapEdges: ! state.wrapEdges})
+      | ToggleCellState =>
+        ReasonReact.Update({...state, cellState: ! state.cellState})
       | SwitchRuleset(ruleno) =>
         ReasonReact.Update({...state, activeRuleset: ruleno})
       | SwitchGolPattern(pattern) =>
@@ -119,7 +124,13 @@ let make = _children => {
         let simData = [("gol", Some(golConfig)), ...currData];
         state.storedData := Some(simData);
         ReasonReact.Update({...state, activeGolPattern: pattern, simData});
-      | SwitchType(simType) => ReasonReact.Update({...state, simType})
+      | SwitchType(simType) =>
+        switch (simType) {
+        | GOL => ReasonReact.Update({...state, simType, wrapEdges: false})
+        | Simple
+        | Stacking =>
+          ReasonReact.Update({...state, simType, cellState: false})
+        }
       | UpdateCells =>
         let simType = SimTypes.Helpers.typeToKey(state.simType);
         let {genMax, cellsPerRow, wrapEdges, generation, _} = state;
@@ -224,6 +235,7 @@ let make = _children => {
         simType,
         golpatterns,
         activeGolPattern,
+        cellState,
         _,
       } =
         self.state;
@@ -281,6 +293,15 @@ let make = _children => {
                     action=(a => SwitchGolPattern(a))
                     rulesets=golpatterns
                   />
+                  <label>
+                    (ReasonReact.string("Cell Lifecycles"))
+                    <input
+                      _type="checkbox"
+                      value="cellstate"
+                      checked=self.state.cellState
+                      onChange=(_event => self.send(ToggleCellState))
+                    />
+                  </label>
                 </div>
               | Stacking =>
                 <div className="stacking-controls">
@@ -323,7 +344,12 @@ let make = _children => {
                     cellWidth=(self.state.containerWidth / 20)
                     cells=cells[0]
                   />
-                | _ => <Stacking cellWidth=self.state.cellWidth cells />
+                | _ =>
+                  <Stacking
+                    cellWidth=self.state.cellWidth
+                    cells
+                    cellStatus=cellState
+                  />
                 }
               | None => ReasonReact.null
               };

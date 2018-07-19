@@ -1,41 +1,8 @@
-type cellStatus =
-  | Dead
-  | Alive
-  | Born
-  | Dying;
+let component = ReasonReact.statelessComponent("Cell");
 
-let cellStatusToClassName = cellStatus =>
-  switch (cellStatus) {
-  | Dead => "dead"
-  | Alive => "alive"
-  | Born => "born"
-  | Dying => "dying"
-  };
-
-type state = {
-  status: cellStatus,
-  cell: int,
-};
-
-type actions =
-  | UpdateStatus(cellStatus);
-
-let component = ReasonReact.reducerComponent("Cell");
-
-let make = (~cellSize: int, ~indexes: (int, int), ~cell: int, _children) => {
+let make =
+    (~cellSize: int, ~indexes: (int, int), ~className: string, _children) => {
   ...component,
-  initialState: () => {status: Dead, cell},
-  reducer: (action, state: state) =>
-    switch (action) {
-    | UpdateStatus(status) => ReasonReact.Update({...state, status})
-    },
-  willReceiveProps: self =>
-    if (self.state.cell !== cell) {
-      {...self.state, cell};
-    } else {
-      self.state;
-    },
-  shouldUpdate: ({oldSelf, _}) => oldSelf.state.cell !== cell,
   render: _self => {
     let width = string_of_int(cellSize) ++ "px";
     let (rowIndex, colIndex) = indexes;
@@ -50,7 +17,26 @@ let make = (~cellSize: int, ~indexes: (int, int), ~cell: int, _children) => {
           (),
         )
       )
-      className=("cell stacking " ++ (cell === 1 ? "alive" : ""))
+      className=("cell stacking " ++ className)
     />;
   },
+};
+
+let render = (~cellSize: int, ~indexes: (int, int), ~className: string) => {
+  let width = string_of_int(cellSize) ++ "px";
+  let (rowIndex, colIndex) = indexes;
+  let topPos = string_of_int(cellSize * rowIndex) ++ "px";
+  let leftPos = string_of_int(cellSize * colIndex) ++ "px";
+  <div
+    key=(string_of_int(rowIndex) ++ "-" ++ string_of_int(colIndex) ++ "cell")
+    style=(
+      ReactDOMRe.Style.make(
+        ~height=width,
+        ~width,
+        ~transform="translate(" ++ leftPos ++ ", " ++ topPos ++ ")",
+        (),
+      )
+    )
+    className=("cell stacking " ++ className)
+  />;
 };

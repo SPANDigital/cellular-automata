@@ -22,28 +22,34 @@ type actions =
 
 let component = ReasonReact.reducerComponent("Cell");
 
-let make = (~cellSize: int, ~cell: int, _children) => {
+let make = (~cellSize: int, ~indexes: (int, int), ~cell: int, _children) => {
   ...component,
   initialState: () => {status: Dead, cell},
   reducer: (action, state: state) =>
     switch (action) {
     | UpdateStatus(status) => ReasonReact.Update({...state, status})
     },
-  willReceiveProps: self => {
-    let prevCell = string_of_int(self.state.cell);
-    let nextCell = string_of_int(cell);
-    let str = {j| $prevCell - $nextCell |j};
-    if (prevCell !== nextCell) {
+  willReceiveProps: self =>
+    if (self.state.cell !== cell) {
       {...self.state, cell};
     } else {
       self.state;
-    };
-  },
-  shouldUpdate: ({oldSelf, newSelf}) => oldSelf.state.cell !== cell,
+    },
+  shouldUpdate: ({oldSelf, _}) => oldSelf.state.cell !== cell,
   render: _self => {
     let width = string_of_int(cellSize) ++ "px";
+    let (rowIndex, colIndex) = indexes;
+    let topPos = string_of_int(cellSize * rowIndex) ++ "px";
+    let leftPos = string_of_int(cellSize * colIndex) ++ "px";
     <div
-      style=(ReactDOMRe.Style.make(~height=width, ~width, ()))
+      style=(
+        ReactDOMRe.Style.make(
+          ~height=width,
+          ~width,
+          ~transform="translate(" ++ leftPos ++ ", " ++ topPos ++ ")",
+          (),
+        )
+      )
       className=("cell stacking " ++ (cell === 1 ? "alive" : ""))
     />;
   },

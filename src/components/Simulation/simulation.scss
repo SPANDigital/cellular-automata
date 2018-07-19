@@ -56,23 +56,25 @@
   border: 2px solid #222;
   box-shadow: 7px 7px 12px -6px rgba(0, 0, 0, 0.34);
   overflow: hidden;
+  position: relative;
   .cellRow {
     display: flex;
     width: 100%;
-    .cell {
-      flex: 1;
-      background: #fff;
-      &.alive {
-        background: #000;
-        color: #fff;
-      }
-      &.simple {
-        line-height: 30px;
-        height: 30px;
-      }
-      &.stacking {
-        height: 10px;
-      }
+  }
+  .cell {
+    background: #fff;
+    &.alive {
+      background: #000;
+      color: #fff;
+    }
+    &.simple {
+      line-height: 30px;
+      height: 30px;
+    }
+    &.stacking {
+      height: 10px;
+      position: absolute;
+      transform: translateZ(0);
     }
   }
 }
